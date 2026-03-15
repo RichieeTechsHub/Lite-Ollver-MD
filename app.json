@@ -10,26 +10,16 @@
   ],
   "repository": "https://github.com/RichieeTechsHub/Lite-Ollver-MD",
   "success_url": "/",
-
   "env": {
     "BOT_NAME": {
       "description": "Name of your bot",
       "value": "Lite-Ollver-MD"
     },
-
     "SESSION_ID": {
       "description": "Paste your generated session here",
       "required": true
     }
   },
-
-  "formation": {
-    "worker": {
-      "quantity": 1,
-      "size": "free"
-    }
-  },
-
   "buildpacks": [
     {
       "url": "heroku/nodejs"
