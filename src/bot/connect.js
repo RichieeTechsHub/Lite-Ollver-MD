@@ -13,7 +13,10 @@ const {
   sessionFilesExist,
   decodeSession
 } = require("./session");
-const { handleMessages } = require("./handler");
+
+const handlerModule = require("./handler");
+const handleMessages =
+  handlerModule.handleMessages || handlerModule;
 
 const logger = pino({ level: "silent" });
 
@@ -39,6 +42,10 @@ async function startBot() {
     if (!ready) {
       console.log("⏳ Bot startup stopped because session is missing.");
       return;
+    }
+
+    if (typeof handleMessages !== "function") {
+      throw new Error("handler.js is not exporting a valid function");
     }
 
     const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);

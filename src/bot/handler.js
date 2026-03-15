@@ -5,10 +5,7 @@ const config = require("../../config");
 async function handleMessages(sock, messageEvent) {
   try {
     const msg = messageEvent.messages[0];
-
-    if (!msg) return;
-    if (!msg.message) return;
-    if (msg.key.fromMe) return;
+    if (!msg || !msg.message || msg.key.fromMe) return;
 
     const body =
       msg.message.conversation ||
