@@ -49,7 +49,7 @@ async function startBot() {
       logger,
       printQRInTerminal: false,
       auth: state,
-      browser: [config.BOT_NAME, "Chrome", config.VERSION],
+      browser: [config.BOT_NAME || "Lite-Ollver-MD", "Chrome", config.VERSION || "1.0.0"],
       markOnlineOnConnect: true,
       syncFullHistory: false
     });
@@ -57,7 +57,11 @@ async function startBot() {
     sock.ev.on("creds.update", saveCreds);
 
     sock.ev.on("messages.upsert", async (messageEvent) => {
-      await handleMessages(sock, messageEvent);
+      try {
+        await handleMessages(sock, messageEvent);
+      } catch (error) {
+        console.error("❌ Message handler crashed:", error);
+      }
     });
 
     sock.ev.on("connection.update", async (update) => {
@@ -86,7 +90,7 @@ async function startBot() {
         }
 
         if (shouldReconnect) {
-          console.log("♻️ Reconnecting...");
+          console.log("♻️ Reconnecting in 5 seconds...");
           setTimeout(() => {
             startBot().catch((err) => {
               console.error("Reconnect failed:", err);
@@ -98,7 +102,7 @@ async function startBot() {
 
     return sock;
   } catch (error) {
-    console.error("❌ Error in startBot:", error.message);
+    console.error("❌ Error in startBot:", error);
     throw error;
   }
 }
