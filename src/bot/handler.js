@@ -1,13 +1,11 @@
 const fs = require("fs");
 const path = require("path");
-const config = require("../../config");
 
-async function handleMessages(sock, messageEvent) {
+async function handleMessages(sock, messageEvent, config) {
   try {
-    const msg = messageEvent.messages[0];
+    const msg = messageEvent.messages?.[0];
     if (!msg || !msg.message) return;
 
-    // Allow commands from your own account too
     const body =
       msg.message.conversation ||
       msg.message.extendedTextMessage?.text ||
@@ -16,14 +14,17 @@ async function handleMessages(sock, messageEvent) {
       "";
 
     const prefix = config.PREFIX || ".";
+
     if (!body.startsWith(prefix)) return;
 
     const args = body.slice(prefix.length).trim().split(/ +/);
     const command = args.shift()?.toLowerCase();
+
     if (!command) return;
 
     const commandsPath = path.join(__dirname, "../commands");
-    const commandFiles = [];
+
+    let commandFiles = [];
 
     const categories = fs.readdirSync(commandsPath);
 
