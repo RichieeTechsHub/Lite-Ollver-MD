@@ -14,12 +14,6 @@ const {
   decodeSession
 } = require("./session");
 
-const handlerModule = require("./handler");
-const handleMessages =
-  typeof handlerModule === "function"
-    ? handlerModule
-    : handlerModule.handleMessages;
-
 const logger = pino({ level: "silent" });
 
 async function prepareSession() {
@@ -46,10 +40,6 @@ async function startBot() {
       return;
     }
 
-    if (typeof handleMessages !== "function") {
-      throw new Error("handler.js did not export a valid function");
-    }
-
     const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
     const { version } = await fetchLatestBaileysVersion();
 
@@ -58,7 +48,11 @@ async function startBot() {
       logger,
       printQRInTerminal: false,
       auth: state,
-      browser: [config.BOT_NAME || "Lite-Ollver-MD", "Chrome", config.VERSION || "1.0.0"],
+      browser: [
+        config.BOT_NAME || "Lite-Ollver-MD",
+        "Chrome",
+        config.VERSION || "1.0.0"
+      ],
       markOnlineOnConnect: true,
       syncFullHistory: false
     });
@@ -67,7 +61,7 @@ async function startBot() {
 
     sock.ev.on("messages.upsert", async (messageEvent) => {
       try {
-        const msg = messageEvent.messages?.[0];
+        const msg = messageEvent?.messages?.[0];
         const body =
           msg?.message?.conversation ||
           msg?.message?.extendedTextMessage?.text ||
@@ -80,6 +74,13 @@ async function startBot() {
           fromMe: msg?.key?.fromMe,
           text: body
         });
+
+        delete require.cache[require.resolve("./handler")];
+        const handleMessages = require("./handler");
+
+        if (typeof handleMessages !== "function") {
+          throw new Error("handler.js must export a function");
+        }
 
         await handleMessages(sock, messageEvent, config);
       } catch (error) {

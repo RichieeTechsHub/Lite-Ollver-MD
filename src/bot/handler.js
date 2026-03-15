@@ -3,7 +3,7 @@ const path = require("path");
 
 async function handleMessages(sock, messageEvent, config) {
   try {
-    const msg = messageEvent.messages?.[0];
+    const msg = messageEvent?.messages?.[0];
     if (!msg || !msg.message) return;
 
     const body =
@@ -14,6 +14,7 @@ async function handleMessages(sock, messageEvent, config) {
       "";
 
     const prefix = config.PREFIX || ".";
+
     if (!body.startsWith(prefix)) return;
 
     const args = body.slice(prefix.length).trim().split(/ +/);
@@ -47,8 +48,9 @@ async function handleMessages(sock, messageEvent, config) {
         cmd.name === command ||
         (Array.isArray(cmd.alias) && cmd.alias.includes(command))
       ) {
-        const reply = (text) =>
-          sock.sendMessage(msg.key.remoteJid, { text }, { quoted: msg });
+        const reply = async (text) => {
+          await sock.sendMessage(msg.key.remoteJid, { text }, { quoted: msg });
+        };
 
         return await cmd.execute({
           sock,
@@ -66,4 +68,3 @@ async function handleMessages(sock, messageEvent, config) {
 }
 
 module.exports = handleMessages;
-module.exports.handleMessages = handleMessages;
