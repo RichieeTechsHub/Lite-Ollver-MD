@@ -1,46 +1,100 @@
-\# 🤖 Lite-Ollver-MD
+<div align="center">
 
+<img src="./assets/banner.png" width="100%">
 
+<br>
 
-<img src="assets/logo.png" width="200" height="200" alt="Lite-Ollver-MD Logo">
+<img src="./assets/logo.png" width="140">
 
+# Lite-Ollver-MD
 
+### Powerful WhatsApp Multi-Device Bot
 
-\*\*Lite-Ollver-MD\*\* is a fast, clean and powerful \*\*WhatsApp Multi-Device Bot\*\* built with \*\*Baileys\*\*.
+Fast • Stable • Customizable
 
+<br>
 
+<a href="https://github.com/RichieeTechsHub/Lite-Ollver-MD">
+<img src="https://img.shields.io/badge/GitHub-Repository-black?style=for-the-badge&logo=github">
+</a>
 
-It supports automation, downloads, group moderation, AI tools and customizable settings.
+<a href="https://github.com/RichieeTechsHub/Lite-Ollver-MD/fork">
+<img src="https://img.shields.io/badge/Fork-Repository-blue?style=for-the-badge&logo=github">
+</a>
 
+<a href="https://lite-ollver-session.onrender.com">
+<img src="https://img.shields.io/badge/Generate-Session-green?style=for-the-badge&logo=whatsapp">
+</a>
 
+<a href="https://heroku.com/deploy?template=https://github.com/RichieeTechsHub/Lite-Ollver-MD">
+<img src="https://www.herokucdn.com/deploy/button.svg">
+</a>
 
-\---
+</div>
 
+---
 
+# 🤖 Lite-Ollver-MD
 
-\# 🚀 Deploy
+Lite-Ollver-MD is a powerful **WhatsApp Multi-Device Bot** built with **Baileys**.
 
+It supports automation, media downloads, AI utilities, group moderation and customizable commands.
 
+---
 
-\### Deploy to Heroku
+# 🚀 Quick Start
 
+### 1️⃣ Fork Repository
 
+https://github.com/RichieeTechsHub/Lite-Ollver-MD/fork
 
-\[!\[Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/YOUR\_GITHUB\_USERNAME/Lite-Ollver-MD)
+---
 
+### 2️⃣ Generate Session
 
+Open the session generator
 
-\---
+https://lite-ollver-session.onrender.com
 
+Enter your WhatsApp number like this:
 
+254740479599
 
-\# 🔗 Pair Session
+Your **SESSION_ID** will be sent to your WhatsApp inbox.
 
+---
 
+### 3️⃣ Deploy Bot
 
-Generate your WhatsApp session before deploying.
+Press the **Deploy to Heroku** button above.
 
+You will only need to enter:
 
+BOT_NAME  
+SESSION_ID
 
-\*\*Session Generator\*\*
+Everything else deploys automatically.
 
+---
+
+# 👑 Owner
+
+RichiieeTheeGoat
+
+https://wa.me/254740479599
+
+---
+
+# 👥 Support Group
+
+https://chat.whatsapp.com/JKF3XHbmKY47IQZc7d3LB2
+
+---
+
+<div align="center">
+
+### Lite-Ollver-MD
+
+Built with ❤️ by **RichiieeTheeGoat**
+
+</div>

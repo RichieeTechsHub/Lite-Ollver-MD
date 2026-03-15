@@ -1,50 +1,38 @@
 {
   "name": "Lite-Ollver-MD",
-  "description": "Lite-Ollver-MD WhatsApp Multi Device Bot",
-  "logo": "https://files.catbox.moe/xyzlogo.png",
-  "repository": "https://github.com/RichiieeTheeGoat/Lite-Ollver-MD",
+  "description": "Powerful WhatsApp Multi Device Bot built with Baileys",
+  "logo": "https://raw.githubusercontent.com/RichieeTechsHub/Lite-Ollver-MD/main/assets/logo.png",
   "keywords": [
     "whatsapp",
     "bot",
     "baileys",
-    "lite-ollver-md",
-    "automation",
-    "whatsapp-bot"
+    "whatsapp-md"
   ],
-  "website": "https://chat.whatsapp.com/JKF3XHbmKY47IQZc7d3LB2",
+  "repository": "https://github.com/RichieeTechsHub/Lite-Ollver-MD",
   "success_url": "/",
-  "stack": "heroku-22",
+
   "env": {
+    "BOT_NAME": {
+      "description": "Name of your bot",
+      "value": "Lite-Ollver-MD"
+    },
+
     "SESSION_ID": {
-      "description": "Paste the session generated from the session generator",
+      "description": "Paste your generated session here",
       "required": true
-    },
-    "OWNER_NUMBER": {
-      "description": "Owner WhatsApp number without + sign",
-      "value": "254740479599"
-    },
-    "OWNER_NAME": {
-      "description": "Bot owner name",
-      "value": "RichiieeTheeGoat"
-    },
-    "PREFIX": {
-      "description": "Default bot prefix",
-      "value": "."
-    },
-    "MODE": {
-      "description": "Bot mode public/private",
-      "value": "public"
     }
   },
+
   "formation": {
-    "web": {
+    "worker": {
       "quantity": 1,
-      "size": "basic"
+      "size": "free"
     }
   },
+
   "buildpacks": [
     {
       "url": "heroku/nodejs"
     }
   ]
-}s
+}
