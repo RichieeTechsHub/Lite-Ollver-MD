@@ -5,8 +5,9 @@ const config = require("../../config");
 async function handleMessages(sock, messageEvent) {
   try {
     const msg = messageEvent.messages[0];
-    if (!msg || !msg.message || msg.key.fromMe) return;
+    if (!msg || !msg.message) return;
 
+    // Allow commands from your own account too
     const body =
       msg.message.conversation ||
       msg.message.extendedTextMessage?.text ||
@@ -66,4 +67,4 @@ async function handleMessages(sock, messageEvent) {
   }
 }
 
-module.exports = { handleMessages };
+module.exports = handleMessages;
