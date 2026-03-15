@@ -1,3 +1,5 @@
+const fs = require("fs");
+const path = require("path");
 const pino = require("pino");
 const {
   default: makeWASocket,
@@ -13,6 +15,7 @@ const {
   sessionFilesExist,
   decodeSession
 } = require("./session");
+const { buildMainMenu } = require("./menu");
 
 const logger = pino({ level: "silent" });
 
@@ -29,6 +32,100 @@ async function prepareSession() {
   }
 
   return true;
+}
+
+async function replyText(sock, msg, text) {
+  await sock.sendMessage(msg.key.remoteJid, { text }, { quoted: msg });
+}
+
+async function sendMenu(sock, msg) {
+  const menuText = buildMainMenu({
+    ownerName: config.OWNER_NAME,
+    prefix: config.PREFIX,
+    mode: config.MODE,
+    version: config.VERSION,
+    host: "Heroku",
+    speed: "0.2100"
+  });
+
+  const logoPath = path.join(process.cwd(), "assets", "logo.png");
+
+  if (fs.existsSync(logoPath)) {
+    const imageBuffer = fs.readFileSync(logoPath);
+    await sock.sendMessage(
+      msg.key.remoteJid,
+      {
+        image: imageBuffer,
+        caption: menuText
+      },
+      { quoted: msg }
+    );
+    return;
+  }
+
+  await replyText(sock, msg, menuText);
+}
+
+async function handleIncomingMessages(sock, messageEvent) {
+  try {
+    const msg = messageEvent?.messages?.[0];
+    if (!msg || !msg.message) return;
+
+    const body =
+      msg.message.conversation ||
+      msg.message.extendedTextMessage?.text ||
+      msg.message.imageMessage?.caption ||
+      msg.message.videoMessage?.caption ||
+      "";
+
+    console.log("📩 Incoming message:", {
+      from: msg?.key?.remoteJid,
+      fromMe: msg?.key?.fromMe,
+      text: body
+    });
+
+    const prefix = config.PREFIX || ".";
+    if (!body.startsWith(prefix)) return;
+
+    const args = body.slice(prefix.length).trim().split(/ +/);
+    const command = args.shift()?.toLowerCase();
+
+    if (!command) return;
+
+    if (command === "ping") {
+      return await replyText(sock, msg, "Pong 🏓");
+    }
+
+    if (command === "alive") {
+      return await replyText(
+        sock,
+        msg,
+        `✅ *${config.BOT_NAME}* is active and running.\n👑 Owner: ${config.OWNER_NAME}\n🌍 Mode: ${config.MODE}\n⌨️ Prefix: ${config.PREFIX}`
+      );
+    }
+
+    if (command === "menu" || command === "help") {
+      return await sendMenu(sock, msg);
+    }
+
+    if (command === "owner") {
+      return await replyText(
+        sock,
+        msg,
+        `👑 Owner: ${config.OWNER_NAME}\n📱 Number: ${config.OWNER_NUMBER}`
+      );
+    }
+
+    if (command === "repo") {
+      return await replyText(
+        sock,
+        msg,
+        "🌐 Repo: https://github.com/RichieeTechsHub/Lite-Ollver-MD"
+      );
+    }
+  } catch (error) {
+    console.error("❌ Inline handler crashed:", error);
+  }
 }
 
 async function startBot() {
@@ -60,32 +157,7 @@ async function startBot() {
     sock.ev.on("creds.update", saveCreds);
 
     sock.ev.on("messages.upsert", async (messageEvent) => {
-      try {
-        const msg = messageEvent?.messages?.[0];
-        const body =
-          msg?.message?.conversation ||
-          msg?.message?.extendedTextMessage?.text ||
-          msg?.message?.imageMessage?.caption ||
-          msg?.message?.videoMessage?.caption ||
-          "";
-
-        console.log("📩 Incoming message:", {
-          from: msg?.key?.remoteJid,
-          fromMe: msg?.key?.fromMe,
-          text: body
-        });
-
-        delete require.cache[require.resolve("./handler")];
-        const handleMessages = require("./handler");
-
-        if (typeof handleMessages !== "function") {
-          throw new Error("handler.js must export a function");
-        }
-
-        await handleMessages(sock, messageEvent, config);
-      } catch (error) {
-        console.error("❌ Message handler crashed:", error);
-      }
+      await handleIncomingMessages(sock, messageEvent);
     });
 
     sock.ev.on("connection.update", async (update) => {
