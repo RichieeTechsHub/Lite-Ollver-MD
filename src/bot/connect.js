@@ -14,8 +14,11 @@ const {
   decodeSession
 } = require("./session");
 
-// IMPORTANT: handler.js exports a single function
-const handleMessages = require("./handler");
+const handlerModule = require("./handler");
+const handleMessages =
+  typeof handlerModule === "function"
+    ? handlerModule
+    : handlerModule.handleMessages;
 
 const logger = pino({ level: "silent" });
 
@@ -43,6 +46,10 @@ async function startBot() {
       return;
     }
 
+    if (typeof handleMessages !== "function") {
+      throw new Error("handler.js did not export a valid function");
+    }
+
     const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
     const { version } = await fetchLatestBaileysVersion();
 
@@ -60,6 +67,20 @@ async function startBot() {
 
     sock.ev.on("messages.upsert", async (messageEvent) => {
       try {
+        const msg = messageEvent.messages?.[0];
+        const body =
+          msg?.message?.conversation ||
+          msg?.message?.extendedTextMessage?.text ||
+          msg?.message?.imageMessage?.caption ||
+          msg?.message?.videoMessage?.caption ||
+          "";
+
+        console.log("📩 Incoming message:", {
+          from: msg?.key?.remoteJid,
+          fromMe: msg?.key?.fromMe,
+          text: body
+        });
+
         await handleMessages(sock, messageEvent, config);
       } catch (error) {
         console.error("❌ Message handler crashed:", error);

@@ -14,17 +14,14 @@ async function handleMessages(sock, messageEvent, config) {
       "";
 
     const prefix = config.PREFIX || ".";
-
     if (!body.startsWith(prefix)) return;
 
     const args = body.slice(prefix.length).trim().split(/ +/);
     const command = args.shift()?.toLowerCase();
-
     if (!command) return;
 
     const commandsPath = path.join(__dirname, "../commands");
-
-    let commandFiles = [];
+    const commandFiles = [];
 
     const categories = fs.readdirSync(commandsPath);
 
@@ -69,3 +66,4 @@ async function handleMessages(sock, messageEvent, config) {
 }
 
 module.exports = handleMessages;
+module.exports.handleMessages = handleMessages;
