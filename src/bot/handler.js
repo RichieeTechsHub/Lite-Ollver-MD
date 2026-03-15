@@ -1,6 +1,11 @@
+const fs = require("fs");
+const path = require("path");
+const config = require("../../config");
+
 async function handleMessages(sock, messageEvent) {
   try {
     const msg = messageEvent.messages[0];
+
     if (!msg) return;
     if (!msg.message) return;
     if (msg.key.fromMe) return;
@@ -13,15 +18,14 @@ async function handleMessages(sock, messageEvent) {
       "";
 
     const prefix = config.PREFIX || ".";
-
     if (!body.startsWith(prefix)) return;
 
     const args = body.slice(prefix.length).trim().split(/ +/);
-    const command = args.shift().toLowerCase();
+    const command = args.shift()?.toLowerCase();
+    if (!command) return;
 
     const commandsPath = path.join(__dirname, "../commands");
-
-    let commandFiles = [];
+    const commandFiles = [];
 
     const categories = fs.readdirSync(commandsPath);
 
@@ -45,12 +49,12 @@ async function handleMessages(sock, messageEvent) {
 
       if (
         cmd.name === command ||
-        (cmd.alias && cmd.alias.includes(command))
+        (Array.isArray(cmd.alias) && cmd.alias.includes(command))
       ) {
         const reply = (text) =>
           sock.sendMessage(msg.key.remoteJid, { text }, { quoted: msg });
 
-        return cmd.execute({
+        return await cmd.execute({
           sock,
           msg,
           args,
