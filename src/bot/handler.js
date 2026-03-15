@@ -1,22 +1,28 @@
 const fs = require("fs");
 const path = require("path");
+const config = require("../../config");
 
-module.exports = async function handler(sock, msg, config, settings) {
+async function handleMessages(sock, messageEvent) {
   try {
+    const msg = messageEvent.messages[0];
+    if (!msg || !msg.message) return;
+    if (msg.key.fromMe) return;
+
     const body =
-      msg.message?.conversation ||
-      msg.message?.extendedTextMessage?.text ||
-      msg.message?.imageMessage?.caption ||
-      msg.message?.videoMessage?.caption ||
+      msg.message.conversation ||
+      msg.message.extendedTextMessage?.text ||
+      msg.message.imageMessage?.caption ||
+      msg.message.videoMessage?.caption ||
       "";
 
-    const prefix = settings?.prefix || config.PREFIX || ".";
+    const prefix = config.PREFIX || ".";
+
     if (!body.startsWith(prefix)) return;
 
     const args = body.slice(prefix.length).trim().split(/ +/);
     const command = args.shift().toLowerCase();
 
-    const commandsPath = path.join(process.cwd(), "src", "commands");
+    const commandsPath = path.join(__dirname, "../commands");
 
     let commandFiles = [];
 
@@ -37,6 +43,7 @@ module.exports = async function handler(sock, msg, config, settings) {
     }
 
     for (const file of commandFiles) {
+      delete require.cache[require.resolve(file)];
       const cmd = require(file);
 
       if (
@@ -52,7 +59,6 @@ module.exports = async function handler(sock, msg, config, settings) {
           args,
           command,
           config,
-          settings,
           reply
         });
       }
@@ -60,4 +66,6 @@ module.exports = async function handler(sock, msg, config, settings) {
   } catch (error) {
     console.error("Handler error:", error);
   }
-};
+}
+
+module.exports = { handleMessages };
