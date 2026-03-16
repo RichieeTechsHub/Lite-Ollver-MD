@@ -52,28 +52,38 @@ async function sendOwnerConnectedMessage(sock, runtimeStart) {
       return;
     }
 
-    const myNumber = String(myJid).split(":")[0].replace(/\D/g, "");
-    const speed = `${Date.now() - runtimeStart} ms`;
-    const prefix = settings.prefix || config.PREFIX || ".";
     const ownerName = settings.ownerName || config.OWNER_NAME || "Owner";
-    const waLink = `https://wa.me/${myNumber}`;
+    const ownerNumber = settings.ownerNumber || config.OWNER_NUMBER || "";
+    const prefix = settings.prefix || config.PREFIX || ".";
+    const speed = `${Date.now() - runtimeStart} ms`;
 
-    const text = [
+    const caption = [
       "╭━━━〔 *ELITE-OLLVER-MD* 〕━━━╮",
       "✅ Connected Successfully",
       "",
       `⚡ Speed: ${speed}`,
       `🔣 Prefix: ${prefix}`,
       `👑 Owner: ${ownerName}`,
-      `🔗 WhatsApp: ${waLink}`,
+      `📱 Owner Number: ${ownerNumber}`,
       "",
       "Bot is now active in your inbox.",
       "╰━━━━━━━━━━━━━━━━━━━━━━╯"
     ].join("\n");
 
+    const logoPath = path.join(process.cwd(), "assets", "logo.png");
+
     const trySend = async (attempt = 1) => {
       try {
-        await sock.sendMessage(myJid, { text });
+        if (fs.existsSync(logoPath)) {
+          const imageBuffer = fs.readFileSync(logoPath);
+          await sock.sendMessage(myJid, {
+            image: imageBuffer,
+            caption
+          });
+        } else {
+          await sock.sendMessage(myJid, { text: caption });
+        }
+
         console.log(`✅ Startup message sent successfully on attempt ${attempt}`);
       } catch (error) {
         console.log(`⚠️ Startup message failed on attempt ${attempt}: ${error.message}`);
@@ -89,11 +99,11 @@ async function sendOwnerConnectedMessage(sock, runtimeStart) {
       trySend(1);
     }, 6000);
   } catch (error) {
-    console.error("❌ Failed to prepare startup message:", error);
+    console.error("❌ Failed to prepare startup message:", error.message);
   }
 }
 
-async function handleIncomingMessages(sock, messageEvent, runtimeStart) {
+async function handleIncomingMessages(sock, messageEvent) {
   try {
     const msg = messageEvent?.messages?.[0];
     if (!msg || !msg.message) return;
@@ -108,12 +118,6 @@ async function handleIncomingMessages(sock, messageEvent, runtimeStart) {
       "";
 
     if (!body) return;
-
-    console.log("📩 Incoming message:", {
-      from: msg?.key?.remoteJid,
-      fromMe: msg?.key?.fromMe,
-      text: body
-    });
 
     const prefix = settings.prefix || config.PREFIX || ".";
     if (!body.startsWith(prefix)) return;
@@ -140,7 +144,7 @@ async function handleIncomingMessages(sock, messageEvent, runtimeStart) {
       return await replyText(
         sock,
         msg,
-        `✅ *${settings.botName || config.BOT_NAME}* is active.\n👑 Owner: ${settings.ownerName}\n🔣 Prefix: ${settings.prefix}\n🌍 Mode: ${settings.mode}`
+        `✅ *${settings.botName || config.BOT_NAME}* is active.\n👑 Owner: ${settings.ownerName}\n📱 Owner Number: ${settings.ownerNumber}\n🔣 Prefix: ${settings.prefix}\n🌍 Mode: ${settings.mode}`
       );
     }
 
@@ -271,11 +275,7 @@ async function handleIncomingMessages(sock, messageEvent, runtimeStart) {
     if (command === "autotyping") {
       const value = parseToggle(args[0] || "");
       if (value === null) {
-        return await replyText(
-          sock,
-          msg,
-          `Usage: .autotyping on/off\nCurrent: ${formatBool(settings.autotyping)}`
-        );
+        return await replyText(sock, msg, `Usage: .autotyping on/off\nCurrent: ${formatBool(settings.autotyping)}`);
       }
 
       await updateSetting("autotyping", value);
@@ -285,11 +285,7 @@ async function handleIncomingMessages(sock, messageEvent, runtimeStart) {
     if (command === "autorecording" || command === "autorecord") {
       const value = parseToggle(args[0] || "");
       if (value === null) {
-        return await replyText(
-          sock,
-          msg,
-          `Usage: .autorecording on/off\nCurrent: ${formatBool(settings.autorecording)}`
-        );
+        return await replyText(sock, msg, `Usage: .autorecording on/off\nCurrent: ${formatBool(settings.autorecording)}`);
       }
 
       await updateSetting("autorecording", value);
@@ -299,11 +295,7 @@ async function handleIncomingMessages(sock, messageEvent, runtimeStart) {
     if (command === "autoreadstatus") {
       const value = parseToggle(args[0] || "");
       if (value === null) {
-        return await replyText(
-          sock,
-          msg,
-          `Usage: .autoreadstatus on/off\nCurrent: ${formatBool(settings.autoreadstatus)}`
-        );
+        return await replyText(sock, msg, `Usage: .autoreadstatus on/off\nCurrent: ${formatBool(settings.autoreadstatus)}`);
       }
 
       await updateSetting("autoreadstatus", value);
@@ -313,11 +305,7 @@ async function handleIncomingMessages(sock, messageEvent, runtimeStart) {
     if (command === "autoreactstatus") {
       const value = parseToggle(args[0] || "");
       if (value === null) {
-        return await replyText(
-          sock,
-          msg,
-          `Usage: .autoreactstatus on/off\nCurrent: ${formatBool(settings.autoreactstatus)}`
-        );
+        return await replyText(sock, msg, `Usage: .autoreactstatus on/off\nCurrent: ${formatBool(settings.autoreactstatus)}`);
       }
 
       await updateSetting("autoreactstatus", value);
@@ -327,11 +315,7 @@ async function handleIncomingMessages(sock, messageEvent, runtimeStart) {
     if (command === "chatbot") {
       const value = parseToggle(args[0] || "");
       if (value === null) {
-        return await replyText(
-          sock,
-          msg,
-          `Usage: .chatbot on/off\nCurrent: ${formatBool(settings.chatbot)}`
-        );
+        return await replyText(sock, msg, `Usage: .chatbot on/off\nCurrent: ${formatBool(settings.chatbot)}`);
       }
 
       await updateSetting("chatbot", value);
@@ -347,7 +331,7 @@ async function handleIncomingMessages(sock, messageEvent, runtimeStart) {
       return await replyText(sock, msg, `✅ Menu image updated:\n${argText}`);
     }
   } catch (error) {
-    console.error("❌ Handler crashed:", error);
+    console.error("❌ Handler crashed:", error.message);
   }
 }
 

@@ -20,12 +20,12 @@ const logger = pino({ level: "silent" });
 async function prepareSession() {
   if (!(await sessionFilesExist())) {
     if (!hasSessionId()) {
-      console.log("No SESSION_ID found.");
+      console.log("⚠️ No SESSION_ID found in environment variables.");
       return false;
     }
 
     await decodeSession();
-    console.log("SESSION_ID decoded successfully.");
+    console.log("✅ SESSION_ID decoded successfully.");
   }
 
   return true;
@@ -58,7 +58,7 @@ async function startBot() {
       try {
         await handleIncomingMessages(sock, messageEvent, runtimeStart);
       } catch (error) {
-        console.error("Message handler error:", error.message);
+        console.error("❌ Message handler error:", error.message);
       }
     });
 
@@ -66,11 +66,11 @@ async function startBot() {
       const { connection, lastDisconnect } = update;
 
       if (connection === "connecting") {
-        console.log("Connecting to WhatsApp...");
+        console.log("🔄 Connecting Lite-Ollver-MD to WhatsApp...");
       }
 
       if (connection === "open") {
-        console.log("Lite-Ollver-MD connected successfully.");
+        console.log("✅ Lite-Ollver-MD connected successfully.");
         await sendOwnerConnectedMessage(sock, runtimeStart);
       }
 
@@ -78,10 +78,10 @@ async function startBot() {
         const statusCode = lastDisconnect?.error?.output?.statusCode;
         const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
 
-        console.log("Connection closed.");
+        console.log("❌ Connection closed.");
 
         if (statusCode === DisconnectReason.loggedOut) {
-          console.log("Session logged out. Generate a new SESSION_ID.");
+          console.log("🚫 Session logged out. Generate a new SESSION_ID.");
           return;
         }
 
@@ -97,7 +97,7 @@ async function startBot() {
 
     return sock;
   } catch (error) {
-    console.error("Error in startBot:", error.message);
+    console.error("❌ Error in startBot:", error.message);
     throw error;
   }
 }
