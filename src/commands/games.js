@@ -18,17 +18,17 @@ async function execute(command) {
   
   switch (command) {
     case "dare":
-      return `🎮 *DARE*\n\n${dares[Math.floor(Math.random() * dares.length]}\n\n👉 You have 5 minutes! ⏱️`;
+      return `🎮 *DARE*\n\n${dares[Math.floor(Math.random() * dares.length)]}\n\n👉 You have 5 minutes! ⏱️`;
       
     case "truth":
-      return `🎮 *TRUTH*\n\n${truths[Math.floor(Math.random() * truths.length]}\n\n👉 Answer honestly! 🤞`;
+      return `🎮 *TRUTH*\n\n${truths[Math.floor(Math.random() * truths.length)]}\n\n👉 Answer honestly! 🤞`;
       
     case "truthordare":
       const choice = Math.random() > 0.5 ? "truth" : "dare";
       if (choice === "truth") {
-        return `🎮 *TRUTH OR DARE*\n\nI choose... *TRUTH!*\n\n${truths[Math.floor(Math.random() * truths.length]}`;
+        return `🎮 *TRUTH OR DARE*\n\nI choose... *TRUTH!*\n\n${truths[Math.floor(Math.random() * truths.length)]}`;
       } else {
-        return `🎮 *TRUTH OR DARE*\n\nI choose... *DARE!*\n\n${dares[Math.floor(Math.random() * dares.length]}`;
+        return `🎮 *TRUTH OR DARE*\n\nI choose... *DARE!*\n\n${dares[Math.floor(Math.random() * dares.length)]}`;
       }
       
     default:
