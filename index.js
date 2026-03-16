@@ -1,5 +1,7 @@
-const startBot = require("./src/bot/connect")
+const startBot = require("./src/bot/connect");
 
-console.log("🚀 Starting Lite-Ollver-MD...")
+console.log("🚀 Starting Lite-Ollver-MD...");
 
-startBot()
+startBot().catch((err) => {
+  console.error("❌ Bot start error:", err);
+});
