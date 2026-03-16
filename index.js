@@ -4,8 +4,8 @@ async function bootstrap() {
   try {
     console.log("🚀 Starting Lite-Ollver-MD...");
     await startBot();
-  } catch (error) {
-    console.error("❌ Fatal startup error:", error.message);
+  } catch (err) {
+    console.error("❌ Fatal startup error:", err);
     process.exit(1);
   }
 }
