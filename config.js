@@ -6,7 +6,7 @@ module.exports = {
   SESSION_ID: process.env.SESSION_ID || "",
   VERSION: "1.0.0",
   
-  // Owner Info - Hardcoded
+  // Owner Info
   OWNER_NAME: "RichieeTheeGoat",
   OWNER_NUMBER: "254740479599",
   OWNER_CONTACT: "https://wa.me/254740479599",
