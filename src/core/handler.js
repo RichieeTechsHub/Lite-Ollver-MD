@@ -1,136 +1,126 @@
 const config = require("../../config");
-const { sendMenuWithLogo } = require("../commands/menu");
+const { buildMenu, sendMenuWithLogo } = require("../commands/menu");
 
-function normalizeNumber(num = "") {
-  return String(num).replace(/\D/g, "");
-}
-
-function extractText(msg) {
-  return (
-    msg.message?.conversation ||
-    msg.message?.extendedTextMessage?.text ||
-    msg.message?.imageMessage?.caption ||
-    msg.message?.videoMessage?.caption ||
-    msg.message?.buttonsResponseMessage?.selectedButtonId ||
-    msg.message?.listResponseMessage?.singleSelectReply?.selectedRowId ||
-    msg.message?.templateButtonReplyMessage?.selectedId ||
-    msg.message?.ephemeralMessage?.message?.conversation ||
-    msg.message?.ephemeralMessage?.message?.extendedTextMessage?.text ||
-    msg.message?.ephemeralMessage?.message?.imageMessage?.caption ||
-    msg.message?.ephemeralMessage?.message?.videoMessage?.caption ||
-    ""
-  ).trim();
-}
-
-async function sendStartupMessage(sock) {
-  try {
-    const selfId = sock.user?.id || "";
-    const selfNumber = normalizeNumber(selfId.split(":")[0].split("@")[0]);
-    const selfJid = `${selfNumber}@s.whatsapp.net`;
-
-    const startupMessage = `✅ *${config.BOT_NAME}* connected successfully
-
-👑 Owner: ${config.OWNER_NAME}
-🔣 Prefix: ${config.PREFIX}
-🌍 Mode: ${config.MODE}
-
-📥 Bot is active in this inbox.
-Send *.ping* or *.menu* to test.`;
-
-    await sock.sendMessage(selfJid, { text: startupMessage });
-    console.log("✅ Startup message sent to hosted number");
-  } catch (error) {
-    console.log("⚠️ Could not send startup message:", error.message);
-  }
-}
+// Import all command modules
+const otherCmd = require("../commands/other");
+const aiCmd = require("../commands/ai");
+const audioCmd = require("../commands/audio");
+const downloadCmd = require("../commands/download");
+const funCmd = require("../commands/fun");
+const gamesCmd = require("../commands/games");
+const groupCmd = require("../commands/group");
+const imageCmd = require("../commands/image");
+const ownerCmd = require("../commands/owner");
+const religionCmd = require("../commands/religion");
+const searchCmd = require("../commands/search");
+const settingsCmd = require("../commands/settings");
+const supportCmd = require("../commands/support");
+const toolsCmd = require("../commands/tools");
+const translateCmd = require("../commands/translate");
+const videoCmd = require("../commands/video");
 
 async function handleMessages(sock, msg) {
   try {
-    const from = msg.key?.remoteJid || "";
-    const sender = msg.key?.participant || from;
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || from;
     const isGroup = from.endsWith("@g.us");
-    const senderNumber = normalizeNumber(sender.split("@")[0]);
-    const ownerNumber = normalizeNumber(config.OWNER_NUMBER);
-    const isOwner = senderNumber === ownerNumber || msg.key?.fromMe === true;
-
-    if (from === "status@broadcast") return;
-
-    const text = extractText(msg);
-
-    console.log(
-      "📨 HANDLER:",
-      JSON.stringify({
-        from,
-        senderNumber,
-        fromMe: !!msg.key?.fromMe,
-        isGroup,
-        text
-      })
-    );
-
+    const senderNumber = sender.split("@")[0];
+    const isOwner = senderNumber === config.OWNER_NUMBER;
+    
+    // Extract text from message
+    const text = msg.message.conversation || 
+                 msg.message.extendedTextMessage?.text || 
+                 msg.message.imageMessage?.caption || 
+                 msg.message.videoMessage?.caption || 
+                 "";
+    
     if (!text) return;
-    if (!text.startsWith(config.PREFIX)) return;
-
-    const args = text.slice(config.PREFIX.length).trim().split(/\s+/);
-    const command = (args.shift() || "").toLowerCase();
-
-    console.log(`⚡ Command detected: ${command}`);
-
+    
+    console.log(`📨 [${new Date().toLocaleTimeString()}] From: ${senderNumber} - "${text}"`);
+    
+    // Check if it's a command
+    if (!text.startsWith(config.PREFIX)) {
+      console.log(`❌ Not a command (prefix: ${config.PREFIX})`);
+      return;
+    }
+    
+    const args = text.slice(config.PREFIX.length).trim().split(/ +/);
+    const command = args.shift()?.toLowerCase();
+    const fullArgs = args.join(" ");
+    
+    console.log(`⚡ Command detected: .${command}`);
+    
+    // Check mode
     if (config.MODE === "private" && !isOwner && !isGroup) {
-      await sock.sendMessage(
-        from,
-        { text: "🔒 Bot is in private mode. Only owner and groups can use commands." },
-        { quoted: msg }
-      );
+      await sock.sendMessage(from, { 
+        text: "🔒 Bot is in *private mode*. Only owner can use commands." 
+      });
       return;
     }
-
-    if (command === "ping") {
-      await sock.sendMessage(
-        from,
-        { text: "🏓 Pong! Command pipeline is working." },
-        { quoted: msg }
-      );
-      console.log("✅ Replied to ping");
-      return;
-    }
-
-    if (command === "alive") {
-      await sock.sendMessage(
-        from,
-        {
-          text: `✅ *${config.BOT_NAME}* is alive.\n👑 Owner: ${config.OWNER_NAME}\n🔣 Prefix: ${config.PREFIX}`
-        },
-        { quoted: msg }
-      );
-      console.log("✅ Replied to alive");
-      return;
-    }
-
-    if (command === "menu" || command === "help") {
-      try {
+    
+    let response = null;
+    
+    // Route commands
+    switch(command) {
+      case "menu":
+      case "help":
+      case "commands":
         await sendMenuWithLogo(sock, from, msg);
-        console.log("✅ Replied with menu");
-      } catch (e) {
-        await sock.sendMessage(
-          from,
-          { text: "✅ Menu command detected, but menu renderer failed." },
-          { quoted: msg }
-        );
-        console.log("❌ Menu renderer failed:", e.message);
-      }
-      return;
+        return;
+      
+      case "ping":
+        const start = Date.now();
+        await sock.sendMessage(from, { text: "⚡ Pinging..." });
+        const end = Date.now();
+        response = `🏓 *Pong!*\n⏱️ Response: ${end - start}ms`;
+        break;
+      
+      case "alive":
+        response = `✅ *${config.BOT_NAME}* is *ONLINE*\n\n👑 Owner: ${config.OWNER_NAME}\n🔣 Prefix: ${config.PREFIX}`;
+        break;
+      
+      case "owner":
+        response = `👑 *Owner*\n📛 ${config.OWNER_NAME}\n📱 ${config.OWNER_NUMBER}`;
+        break;
+      
+      case "repo":
+        response = `📦 *Repository*\n🔗 https://github.com/RichieeTechsHub/Lite-Ollver-MD`;
+        break;
+      
+      case "runtime":
+        const uptime = process.uptime();
+        const hours = Math.floor(uptime / 3600);
+        const minutes = Math.floor((uptime % 3600) / 60);
+        const seconds = Math.floor(uptime % 60);
+        response = `⏱️ *Uptime*\n${hours}h ${minutes}m ${seconds}s`;
+        break;
+      
+      case "support":
+        response = `💬 *Support*\n👥 ${config.SUPPORT_GROUP}`;
+        break;
+      
+      case "time":
+        response = `⏰ *Time*\n${new Date().toLocaleString()}`;
+        break;
+      
+      // Add other commands here
+      
+      default:
+        console.log(`❓ Unknown command: ${command}`);
+        await sock.sendMessage(from, { 
+          text: `❌ Unknown command: *${command}*\nType .menu to see available commands.` 
+        }, { quoted: msg });
+        return;
     }
-
-    await sock.sendMessage(
-      from,
-      { text: `✅ Command detected: ${command}` },
-      { quoted: msg }
-    );
-    console.log(`✅ Fallback reply sent for: ${command}`);
+    
+    if (response) {
+      await sock.sendMessage(from, { text: response }, { quoted: msg });
+      console.log(`✅ Response sent for: ${command}`);
+    }
+    
   } catch (error) {
     console.error("❌ Handler error:", error);
   }
 }
 
-module.exports = { handleMessages, sendStartupMessage };
+module.exports = { handleMessages };
