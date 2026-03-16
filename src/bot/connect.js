@@ -27,8 +27,16 @@ const logger = pino({ level: "silent" });
 let reconnectAttempts = 0;
 let isStarting = false;
 
-function extractText(message = {}) {
-  if (!message) return "";
+function unwrapMessage(message = {}) {
+  if (message.ephemeralMessage?.message) return unwrapMessage(message.ephemeralMessage.message);
+  if (message.viewOnceMessage?.message) return unwrapMessage(message.viewOnceMessage.message);
+  if (message.viewOnceMessageV2?.message) return unwrapMessage(message.viewOnceMessageV2.message);
+  if (message.documentWithCaptionMessage?.message) return unwrapMessage(message.documentWithCaptionMessage.message);
+  return message;
+}
+
+function extractText(rawMessage = {}) {
+  const message = unwrapMessage(rawMessage);
 
   return (
     message.conversation ||
@@ -40,14 +48,13 @@ function extractText(message = {}) {
     message.listResponseMessage?.singleSelectReply?.selectedRowId ||
     message.templateButtonReplyMessage?.selectedId ||
     ""
-  );
+  ).trim();
 }
 
 async function prepareSession() {
   if (!(await sessionFilesExist())) {
     if (!hasSessionId()) {
       console.log("⚠️ No SESSION_ID found in environment variables.");
-      console.log("ℹ️ Add a valid SESSION_ID in Heroku config vars.");
       return false;
     }
 
@@ -95,102 +102,106 @@ async function sendStartupMessage(sock, runtimeStart) {
   }
 }
 
+async function reply(sock, jid, text, quoted) {
+  await sock.sendMessage(jid, { text }, quoted ? { quoted } : {});
+}
+
+async function sendMenu(sock, jid, quoted) {
+  const prefix = process.env.PREFIX || ".";
+  const logoPath = path.join(process.cwd(), "assets", "logo.png");
+
+  const menuText = [
+    "┏▣ ◈ *Lite-Ollver-MD* ◈",
+    `┃ *OWNER* : ${process.env.OWNER_NAME || "RichiieeTheeGoat"}`,
+    `┃ *PREFIX* : [ ${prefix} ]`,
+    "┃ *HOST* : Heroku",
+    `┃ *MODE* : ${process.env.MODE || "private"}`,
+    "┗▣",
+    "",
+    "┏▣ ◈ *MAIN MENU* ◈",
+    "│➽ ping",
+    "│➽ alive",
+    "│➽ menu",
+    "│➽ owner",
+    "│➽ repo",
+    "│➽ getsettings",
+    "│➽ vars",
+    "┗▣"
+  ].join("\n");
+
+  if (fs.existsSync(logoPath)) {
+    const imageBuffer = fs.readFileSync(logoPath);
+    await sock.sendMessage(jid, { image: imageBuffer, caption: menuText }, quoted ? { quoted } : {});
+    return;
+  }
+
+  await reply(sock, jid, menuText, quoted);
+}
+
 async function handleCommand(sock, msg) {
   try {
     if (!msg?.message) return;
 
-    const body = extractText(msg.message).trim();
+    const body = extractText(msg.message);
     if (!body) return;
 
     const from = msg.key.remoteJid;
     const prefix = process.env.PREFIX || ".";
 
-    console.log(`📩 Incoming: ${body} | from=${from} | fromMe=${msg.key.fromMe}`);
+    console.log(`📩 Incoming command candidate: "${body}" from ${from}`);
 
     if (!body.startsWith(prefix)) return;
 
-    const args = body.slice(prefix.length).trim().split(/\s+/);
-    const command = (args.shift() || "").toLowerCase();
+    const parts = body.slice(prefix.length).trim().split(/\s+/);
+    const command = (parts.shift() || "").toLowerCase();
 
     if (!command) return;
 
-    if (command === "ping") {
-      await sock.sendMessage(from, { text: "🏓 Pong!" }, { quoted: msg });
-      return;
-    }
+    console.log(`✅ Command detected: ${command}`);
 
-    if (command === "alive") {
-      await sock.sendMessage(
-        from,
-        {
-          text: [
+    switch (command) {
+      case "ping":
+        return await reply(sock, from, "🏓 Pong!", msg);
+
+      case "alive":
+        return await reply(
+          sock,
+          from,
+          [
             "✅ *Lite-Ollver-MD* is active.",
             `👑 Owner: ${process.env.OWNER_NAME || "RichiieeTheeGoat"}`,
             `📱 Owner Number: ${process.env.OWNER_NUMBER || "254740479599"}`,
             `🔣 Prefix: ${prefix}`,
             `🌍 Mode: ${process.env.MODE || "private"}`
-          ].join("\n")
-        },
-        { quoted: msg }
-      );
-      return;
-    }
+          ].join("\n"),
+          msg
+        );
 
-    if (command === "menu") {
-      const logoPath = path.join(process.cwd(), "assets", "logo.png");
-      const menuText = [
-        "┏▣ ◈ *Lite-Ollver-MD* ◈",
-        `┃ *OWNER* : ${process.env.OWNER_NAME || "RichiieeTheeGoat"}`,
-        `┃ *PREFIX* : [ ${prefix} ]`,
-        "┃ *HOST* : Heroku",
-        `┃ *MODE* : ${process.env.MODE || "private"}`,
-        "┗▣",
-        "",
-        "┏▣ ◈ *MAIN MENU* ◈",
-        "│➽ ping",
-        "│➽ alive",
-        "│➽ menu",
-        "│➽ owner",
-        "│➽ repo",
-        "│➽ getsettings",
-        "│➽ vars",
-        "┗▣"
-      ].join("\n");
+      case "menu":
+        return await sendMenu(sock, from, msg);
 
-      if (fs.existsSync(logoPath)) {
-        const imageBuffer = fs.readFileSync(logoPath);
-        await sock.sendMessage(from, { image: imageBuffer, caption: menuText }, { quoted: msg });
-      } else {
-        await sock.sendMessage(from, { text: menuText }, { quoted: msg });
-      }
-      return;
-    }
+      case "owner":
+        return await reply(
+          sock,
+          from,
+          `👑 Owner: ${process.env.OWNER_NAME || "RichiieeTheeGoat"}\n📱 Number: ${process.env.OWNER_NUMBER || "254740479599"}`,
+          msg
+        );
 
-    if (command === "owner") {
-      await sock.sendMessage(
-        from,
-        {
-          text: `👑 Owner: ${process.env.OWNER_NAME || "RichiieeTheeGoat"}\n📱 Number: ${process.env.OWNER_NUMBER || "254740479599"}`
-        },
-        { quoted: msg }
-      );
-      return;
-    }
+      case "repo":
+        return await reply(
+          sock,
+          from,
+          "🌐 Repo: https://github.com/RichieeTechsHub/Lite-Ollver-MD",
+          msg
+        );
 
-    if (command === "repo") {
-      await sock.sendMessage(
-        from,
-        { text: "🌐 Repo: https://github.com/RichieeTechsHub/Lite-Ollver-MD" },
-        { quoted: msg }
-      );
-      return;
-    }
-
-    if (command === "getsettings" || command === "settings") {
-      await sock.sendMessage(
-        from,
-        {
-          text: [
+      case "getsettings":
+      case "settings":
+        return await reply(
+          sock,
+          from,
+          [
             "⚙️ *CURRENT SETTINGS*",
             `BOT_NAME: ${process.env.BOT_NAME || "Lite-Ollver-MD"}`,
             `OWNER_NAME: ${process.env.OWNER_NAME || "RichiieeTheeGoat"}`,
@@ -198,36 +209,28 @@ async function handleCommand(sock, msg) {
             `PREFIX: ${prefix}`,
             `MODE: ${process.env.MODE || "private"}`,
             `TIMEZONE: ${process.env.TIMEZONE || "Africa/Nairobi"}`
-          ].join("\n")
-        },
-        { quoted: msg }
-      );
-      return;
-    }
+          ].join("\n"),
+          msg
+        );
 
-    if (command === "vars") {
-      await sock.sendMessage(
-        from,
-        {
-          text: [
+      case "vars":
+        return await reply(
+          sock,
+          from,
+          [
             "📦 *BOT VARIABLES*",
             `BOT_NAME: ${process.env.BOT_NAME || "Lite-Ollver-MD"}`,
             `OWNER_NAME: ${process.env.OWNER_NAME || "RichiieeTheeGoat"}`,
             `OWNER_NUMBER: ${process.env.OWNER_NUMBER || "254740479599"}`,
             `PREFIX: ${prefix}`,
             `MODE: ${process.env.MODE || "private"}`
-          ].join("\n")
-        },
-        { quoted: msg }
-      );
-      return;
-    }
+          ].join("\n"),
+          msg
+        );
 
-    await sock.sendMessage(
-      from,
-      { text: `❌ Unknown command: ${command}` },
-      { quoted: msg }
-    );
+      default:
+        return await reply(sock, from, `❌ Unknown command: ${command}`, msg);
+    }
   } catch (error) {
     console.error("❌ Command handler error:", error.message);
   }
@@ -262,9 +265,8 @@ async function startBot() {
 
     sock.ev.on("creds.update", saveCreds);
 
-    sock.ev.on("messages.upsert", async ({ messages, type }) => {
+    sock.ev.on("messages.upsert", async ({ messages }) => {
       try {
-        if (type !== "notify") return;
         const msg = messages?.[0];
         if (!msg || !msg.message) return;
         await handleCommand(sock, msg);
