@@ -22,6 +22,74 @@ let reconnectTimeout = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECTS = 5;
 
+function cleanSessionId(sessionId = "") {
+  return String(sessionId)
+    .replace(/^LITE-OLLVER-MD[:~]/i, "")
+    .replace(/^LITE-OLIVER-MD[:~]/i, "")
+    .replace(/^ELITE-OLLVER-MD[:~]/i, "")
+    .trim();
+}
+
+async function writeSessionFromEnv(sessionDir) {
+  const rawSession = config.SESSION_ID || process.env.SESSION_ID;
+
+  if (!rawSession) {
+    console.log("⚠️ No SESSION_ID found in config vars.");
+    return false;
+  }
+
+  const cleaned = cleanSessionId(rawSession);
+
+  let decoded;
+  try {
+    decoded = Buffer.from(cleaned, "base64").toString("utf-8");
+  } catch (error) {
+    console.log("❌ Failed to base64 decode SESSION_ID");
+    throw error;
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(decoded);
+  } catch (error) {
+    console.log("❌ SESSION_ID decoded text is not valid JSON");
+    throw error;
+  }
+
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error("Decoded SESSION_ID is invalid");
+  }
+
+  // Format 1: { creds: {...}, keys: {...} }
+  if (parsed.creds) {
+    fs.writeFileSync(
+      path.join(sessionDir, "creds.json"),
+      JSON.stringify(parsed.creds, null, 2)
+    );
+
+    if (parsed.keys && typeof parsed.keys === "object") {
+      for (const [keyName, value] of Object.entries(parsed.keys)) {
+        fs.writeFileSync(
+          path.join(sessionDir, `${keyName}.json`),
+          JSON.stringify(value, null, 2)
+        );
+      }
+    }
+
+    console.log("✅ SESSION_ID decoded into Baileys auth files.");
+    return true;
+  }
+
+  // Format 2: raw creds only
+  fs.writeFileSync(
+    path.join(sessionDir, "creds.json"),
+    JSON.stringify(parsed, null, 2)
+  );
+
+  console.log("✅ SESSION_ID saved as creds.json.");
+  return true;
+}
+
 async function connect() {
   if (isConnecting) {
     console.log("⏳ Connection already in progress...");
@@ -42,12 +110,9 @@ async function connect() {
     const sessionFiles = fs.readdirSync(sessionDir);
     console.log(`📊 Found ${sessionFiles.length} session files`);
 
-    // Important:
-    // useMultiFileAuthState expects proper Baileys auth files inside /session.
-    // Writing SESSION_ID into session.txt does NOT create a valid auth state.
-    if (config.SESSION_ID && sessionFiles.length === 0) {
-      console.log("ℹ️ SESSION_ID exists, but this skeleton expects real Baileys auth files in /session.");
-      console.log("ℹ️ If you use SESSION_ID-based login, it must be decoded into proper session files first.");
+    if (sessionFiles.length === 0) {
+      console.log("🔐 No session files found, trying SESSION_ID auto login...");
+      await writeSessionFromEnv(sessionDir);
     }
 
     console.log("🔄 Loading auth state...");
@@ -70,7 +135,7 @@ async function connect() {
 
     sock.ev.on("connection.update", ({ connection, lastDisconnect, qr }) => {
       if (qr) {
-        console.log("⚠️ QR generated. Current auth/session is not valid for automatic login.");
+        console.log("⚠️ QR generated. Current SESSION_ID/session is not valid for automatic login.");
       }
 
       if (connection === "connecting") {
@@ -107,7 +172,7 @@ async function connect() {
         console.log(`❌ Connection closed: ${errorMessage}`);
 
         if (statusCode === DisconnectReason.loggedOut) {
-          console.log("🚫 Session logged out. You need a fresh valid session.");
+          console.log("🚫 Session logged out. Generate a fresh SESSION_ID.");
           return;
         }
 
