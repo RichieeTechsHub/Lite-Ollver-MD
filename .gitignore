@@ -20,8 +20,3 @@ temp/
 *.tmp
 .DS_Store
 Thumbs.db
-
-# System
-*.swp
-*.swo
-*~
