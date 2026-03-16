@@ -15,18 +15,8 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok", bot: config.BOT_NAME });
 });
 
-app.get("/info", (req, res) => {
-  res.json({
-    botName: config.BOT_NAME,
-    ownerName: config.OWNER_NAME,
-    ownerNumber: config.OWNER_NUMBER,
-    prefix: config.PREFIX,
-    mode: config.MODE
-  });
-});
-
 function startServer() {
-  app.listen(PORT, () => console.log(`🌐 Server running on port ${PORT}`));
+  app.listen(PORT, () => console.log(`🌐 Server on port ${PORT}`));
 }
 
 module.exports = { startServer };

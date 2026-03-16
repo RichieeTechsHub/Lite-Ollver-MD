@@ -1,33 +1,17 @@
 {
   "name": "Lite-Ollver-MD",
-  "description": "Lite-Ollver-MD WhatsApp Multi-Device Bot",
-  "repository": "https://github.com/RichieeTechsHub/Lite-Ollver-MD",
-  "logo": "https://raw.githubusercontent.com/RichieeTechsHub/Lite-Ollver-MD/main/assets/logo.png",
-  "keywords": ["whatsapp", "baileys", "bot", "nodejs", "multi-device"],
+  "description": "WhatsApp Bot",
+  "repository": "https://github.com/OllverM/D",
+  "logo": "https://raw.githubusercontent.com/OllverM/D/main/assets/logo.png",
+  "keywords": ["whatsapp", "bot", "baileys"],
   "env": {
     "BOT_NAME": {
-      "description": "Bot display name",
+      "description": "Your bot display name",
       "value": "Lite-Ollver-MD",
       "required": true
     },
-    "OWNER_NAME": {
-      "description": "Owner display name",
-      "value": "RichieeTheeGoat",
-      "required": true
-    },
-    "OWNER_NUMBER": {
-      "description": "Owner WhatsApp number",
-      "value": "254740479599",
-      "required": true
-    },
-    "PREFIX": {
-      "description": "Command prefix",
-      "value": ".",
-      "required": true
-    },
-    "MODE": {
-      "description": "Bot mode",
-      "value": "public",
+    "SESSION_ID": {
+      "description": "Your WhatsApp session ID from generator",
       "required": true
     }
   },
@@ -35,11 +19,5 @@
     {
       "url": "heroku/nodejs"
     }
-  ],
-  "formation": {
-    "worker": {
-      "quantity": 1,
-      "size": "eco"
-    }
-  }
+  ]
 }
