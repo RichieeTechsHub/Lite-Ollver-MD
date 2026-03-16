@@ -1,4 +1,3 @@
-// index.js - Make sure it has clear logging
 const connect = require("./src/core/connect");
 
 console.log("╔══════════════════════════════════╗");
