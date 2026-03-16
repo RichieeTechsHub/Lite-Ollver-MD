@@ -1,5 +1,7 @@
 const config = require("../../config");
-const { buildMenu } = require("../commands/menu");
+const { buildMenu, sendMenuWithLogo } = require("../commands/menu");
+const fs = require("fs");
+const path = require("path");
 
 // Import all command modules
 const otherCmd = require("../commands/other");
@@ -19,6 +21,33 @@ const toolsCmd = require("../commands/tools");
 const translateCmd = require("../commands/translate");
 const videoCmd = require("../commands/video");
 
+async function sendStartupMessage(sock) {
+  try {
+    const ownerJid = config.OWNER_NUMBER + "@s.whatsapp.net";
+    
+    const startupMessage = `╔══════════════════════════════════╗
+║   ✅ BOT CONNECTED SUCCESSFULLY  ║
+╚══════════════════════════════════╝
+
+👑 *Owner:* ${config.OWNER_NAME}
+🤖 *Bot:* ${config.BOT_NAME}
+🔣 *Prefix:* ${config.PREFIX}
+🌍 *Mode:* ${config.MODE}
+⚡ *Status:* Online
+📦 *Commands:* 126+
+
+╔══════════════════════════════════╗
+║   📥 Bot is active in your inbox  ║
+║   Type .menu to see all commands  ║
+╚══════════════════════════════════╝`;
+
+    await sock.sendMessage(ownerJid, { text: startupMessage });
+    console.log("✅ Startup message sent to owner");
+  } catch (error) {
+    console.log("⚠️ Could not send startup message:", error.message);
+  }
+}
+
 async function handleMessages(sock, msg) {
   try {
     const from = msg.key.remoteJid;
@@ -27,20 +56,18 @@ async function handleMessages(sock, msg) {
     const senderNumber = sender.split("@")[0];
     const isOwner = senderNumber === config.OWNER_NUMBER;
     
-    // Extract text from message
     const text = msg.message.conversation || 
                  msg.message.extendedTextMessage?.text || 
                  msg.message.imageMessage?.caption || 
-                 msg.message.videoMessage?.caption || 
                  "";
     
+    if (!text) return;
+    
     // Log all incoming messages
-    if (text) {
-      console.log(`📨 [${new Date().toLocaleTimeString()}] From: ${senderNumber}${isGroup ? ' (group)' : ' (inbox)'} - ${text.substring(0, 30)}${text.length > 30 ? '...' : ''}`);
-    }
+    console.log(`📨 [${new Date().toLocaleTimeString()}] From: ${senderNumber}${isGroup ? ' (group)' : ' (inbox)'} - ${text.substring(0, 30)}${text.length > 30 ? '...' : ''}`);
     
     // Check if it's a command
-    if (!text || !text.startsWith(config.PREFIX)) return;
+    if (!text.startsWith(config.PREFIX)) return;
     
     const args = text.slice(config.PREFIX.length).trim().split(/ +/);
     const command = args.shift()?.toLowerCase();
@@ -48,53 +75,38 @@ async function handleMessages(sock, msg) {
     
     console.log(`⚡ Command: .${command} from ${senderNumber}${isGroup ? ' (group)' : ' (inbox)'}`);
     
+    // Check mode
+    if (config.MODE === "private" && !isOwner && !isGroup) {
+      await sock.sendMessage(from, { 
+        text: "🔒 Bot is in *private mode*. Only owner can use commands." 
+      });
+      return;
+    }
+    
     let response = null;
     
     // Route commands
     switch(command) {
-      // Menu command
+      // Menu command with logo
       case "menu":
       case "help":
-        response = buildMenu();
-        break;
-        
+      case "commands":
+        await sendMenuWithLogo(sock, from, msg);
+        return;
+      
       // Basic commands
       case "ping":
-        const start = Date.now();
-        await sock.sendMessage(from, { text: "⚡ Pinging..." });
-        const end = Date.now();
-        response = `🏓 *Pong!*\n⏱️ Response: ${end - start}ms`;
-        break;
-        
       case "alive":
-        response = `✅ *${config.BOT_NAME}* is online!\n\n👑 Owner: ${config.OWNER_NAME}\n🔣 Prefix: ${config.PREFIX}\n🌍 Mode: ${config.MODE}`;
-        break;
-        
       case "owner":
-        response = `👑 *Owner Information*\n\n📛 Name: ${config.OWNER_NAME}\n📱 Number: ${config.OWNER_NUMBER}\n🔗 Contact: wa.me/${config.OWNER_NUMBER}`;
-        break;
-        
       case "repo":
-        response = `📦 *Repository*\n\n🔗 https://github.com/RichieeTechsHub/Lite-Ollver-MD\n⭐ Star this repo if you like it!`;
-        break;
-        
       case "runtime":
-        const uptime = process.uptime();
-        const hours = Math.floor(uptime / 3600);
-        const minutes = Math.floor((uptime % 3600) / 60);
-        const seconds = Math.floor(uptime % 60);
-        response = `⏱️ *Runtime*\n\n📊 Uptime: ${hours}h ${minutes}m ${seconds}s`;
-        break;
-        
-      case "speed":
-        const speed = (Math.random() * 0.5 + 0.1).toFixed(4);
-        response = `⚡ *Speed:* ${speed} ms`;
-        break;
-        
       case "support":
-        response = `💬 *Support*\n\n👥 Group: ${config.SUPPORT_GROUP}\n📞 Owner: wa.me/${config.OWNER_NUMBER}`;
+      case "time":
+      case "botstatus":
+      case "speed":
+        response = await otherCmd.execute(command, { sock, from, senderNumber, isOwner, args, fullArgs, config });
         break;
-        
+      
       // AI commands
       case "analyze":
       case "blackbox":
@@ -108,7 +120,7 @@ async function handleMessages(sock, msg) {
       case "teach":
         response = await aiCmd.execute(command, { args, fullArgs });
         break;
-        
+      
       // Audio commands
       case "bass":
       case "deep":
@@ -119,7 +131,7 @@ async function handleMessages(sock, msg) {
       case "volaudio":
         response = await audioCmd.execute(command, { args, fullArgs });
         break;
-        
+      
       // Download commands
       case "apk":
       case "facebook":
@@ -134,7 +146,7 @@ async function handleMessages(sock, msg) {
       case "video":
         response = await downloadCmd.execute(command, { args, fullArgs });
         break;
-        
+      
       // Fun commands
       case "fact":
       case "jokes":
@@ -143,14 +155,14 @@ async function handleMessages(sock, msg) {
       case "trivia":
         response = await funCmd.execute(command);
         break;
-        
+      
       // Games commands
       case "dare":
       case "truth":
       case "truthordare":
         response = await gamesCmd.execute(command);
         break;
-        
+      
       // Group commands
       case "add":
       case "antilink":
@@ -183,13 +195,13 @@ async function handleMessages(sock, msg) {
           response = await groupCmd.execute(command, { sock, from, msg, args, fullArgs, isOwner });
         }
         break;
-        
+      
       // Image commands
       case "remini":
       case "wallpaper":
         response = await imageCmd.execute(command, { args, fullArgs });
         break;
-        
+      
       // Owner commands
       case "addsudo":
       case "block":
@@ -209,13 +221,13 @@ async function handleMessages(sock, msg) {
           response = await ownerCmd.execute(command, { sock, from, args, fullArgs });
         }
         break;
-        
+      
       // Religion commands
       case "bible":
       case "quran":
         response = await religionCmd.execute(command, { args, fullArgs });
         break;
-        
+      
       // Search commands
       case "define":
       case "imdb":
@@ -225,7 +237,7 @@ async function handleMessages(sock, msg) {
       case "yts":
         response = await searchCmd.execute(command, { args, fullArgs });
         break;
-        
+      
       // Settings commands
       case "autoreactstatus":
       case "autoreadstatus":
@@ -246,17 +258,17 @@ async function handleMessages(sock, msg) {
         if (!isOwner) {
           response = "❌ Settings can only be changed by the owner!";
         } else {
-          response = await settingsCmd.execute(command, { args, fullArgs });
+          response = await settingsCmd.execute(command, { args, fullArgs, config });
         }
         break;
-        
+      
       // Support commands
       case "feedback":
       case "helpers":
       case "support":
         response = await supportCmd.execute(command, { config });
         break;
-        
+      
       // Tools commands
       case "calculate":
       case "fancy":
@@ -270,19 +282,19 @@ async function handleMessages(sock, msg) {
       case "tourl":
         response = await toolsCmd.execute(command, { sock, from, msg, args, fullArgs });
         break;
-        
+      
       // Translate commands
       case "translate":
         response = await translateCmd.execute(command, { args, fullArgs });
         break;
-        
+      
       // Video commands
       case "toaudio":
       case "toimage":
       case "tovideo":
         response = await videoCmd.execute(command, { args, fullArgs });
         break;
-        
+      
       default:
         console.log(`❓ Unknown command: ${command}`);
         return;
@@ -298,4 +310,4 @@ async function handleMessages(sock, msg) {
   }
 }
 
-module.exports = { handleMessages };
+module.exports = { handleMessages, sendStartupMessage };
