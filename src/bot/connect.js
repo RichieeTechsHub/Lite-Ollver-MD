@@ -17,6 +17,9 @@ const { handleIncomingMessages, sendOwnerConnectedMessage } = require("./handler
 
 const logger = pino({ level: "silent" });
 
+let reconnectAttempts = 0;
+let isStarting = false;
+
 async function prepareSession() {
   if (!(await sessionFilesExist())) {
     if (!hasSessionId()) {
@@ -32,11 +35,17 @@ async function prepareSession() {
 }
 
 async function startBot() {
+  if (isStarting) return;
+  isStarting = true;
+
   try {
     const runtimeStart = Date.now();
     const ready = await prepareSession();
 
-    if (!ready) return;
+    if (!ready) {
+      isStarting = false;
+      return;
+    }
 
     const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
     const { version } = await fetchLatestBaileysVersion();
@@ -56,7 +65,7 @@ async function startBot() {
 
     sock.ev.on("messages.upsert", async (messageEvent) => {
       try {
-        await handleIncomingMessages(sock, messageEvent, runtimeStart);
+        await handleIncomingMessages(sock, messageEvent);
       } catch (error) {
         console.error("❌ Message handler error:", error.message);
       }
@@ -70,33 +79,49 @@ async function startBot() {
       }
 
       if (connection === "open") {
+        reconnectAttempts = 0;
         console.log("✅ Lite-Ollver-MD connected successfully.");
         await sendOwnerConnectedMessage(sock, runtimeStart);
       }
 
       if (connection === "close") {
         const statusCode = lastDisconnect?.error?.output?.statusCode;
-        const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+        const errorMessage =
+          lastDisconnect?.error?.message ||
+          lastDisconnect?.error?.output?.payload?.message ||
+          "Unknown error";
 
-        console.log("❌ Connection closed.");
+        console.log(`❌ Connection closed. Code: ${statusCode || "none"} | ${errorMessage}`);
+
+        isStarting = false;
 
         if (statusCode === DisconnectReason.loggedOut) {
           console.log("🚫 Session logged out. Generate a new SESSION_ID.");
           return;
         }
 
-        if (shouldReconnect) {
-          setTimeout(() => {
-            startBot().catch((err) => {
-              console.error("Reconnect failed:", err.message);
-            });
-          }, 8000);
+        reconnectAttempts += 1;
+
+        if (reconnectAttempts > 5) {
+          console.log("🛑 Too many reconnect attempts. Stopping to protect Heroku memory.");
+          return;
         }
+
+        const delay = 10000;
+        console.log(`♻️ Reconnecting in ${delay / 1000} seconds... Attempt ${reconnectAttempts}/5`);
+
+        setTimeout(() => {
+          startBot().catch((err) => {
+            console.error("Reconnect failed:", err.message);
+          });
+        }, delay);
       }
     });
 
+    isStarting = false;
     return sock;
   } catch (error) {
+    isStarting = false;
     console.error("❌ Error in startBot:", error.message);
     throw error;
   }
