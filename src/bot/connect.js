@@ -27,7 +27,9 @@ const logger = pino({ level: "silent" });
 let reconnectAttempts = 0;
 let isStarting = false;
 
-function getMessageText(message = {}) {
+function extractText(message = {}) {
+  if (!message) return "";
+
   return (
     message.conversation ||
     message.extendedTextMessage?.text ||
@@ -36,6 +38,7 @@ function getMessageText(message = {}) {
     message.documentMessage?.caption ||
     message.buttonsResponseMessage?.selectedButtonId ||
     message.listResponseMessage?.singleSelectReply?.selectedRowId ||
+    message.templateButtonReplyMessage?.selectedId ||
     ""
   );
 }
@@ -81,15 +84,12 @@ async function sendStartupMessage(sock, runtimeStart) {
 
     if (fs.existsSync(logoPath)) {
       const imageBuffer = fs.readFileSync(logoPath);
-      await sock.sendMessage(myJid, {
-        image: imageBuffer,
-        caption
-      });
+      await sock.sendMessage(myJid, { image: imageBuffer, caption });
     } else {
       await sock.sendMessage(myJid, { text: caption });
     }
 
-    console.log("✅ Startup message sent successfully on attempt 1");
+    console.log("✅ Startup message sent successfully");
   } catch (error) {
     console.error("❌ Failed to send startup message:", error.message);
   }
@@ -97,16 +97,22 @@ async function sendStartupMessage(sock, runtimeStart) {
 
 async function handleCommand(sock, msg) {
   try {
-    const body = getMessageText(msg.message).trim();
+    if (!msg?.message) return;
+
+    const body = extractText(msg.message).trim();
     if (!body) return;
 
+    const from = msg.key.remoteJid;
     const prefix = process.env.PREFIX || ".";
+
+    console.log(`📩 Incoming: ${body} | from=${from} | fromMe=${msg.key.fromMe}`);
+
     if (!body.startsWith(prefix)) return;
 
-    const from = msg.key.remoteJid;
-    const command = body.slice(prefix.length).trim().split(/\s+/)[0].toLowerCase();
+    const args = body.slice(prefix.length).trim().split(/\s+/);
+    const command = (args.shift() || "").toLowerCase();
 
-    console.log(`📩 Command received: ${body} | fromMe=${msg.key.fromMe} | chat=${from}`);
+    if (!command) return;
 
     if (command === "ping") {
       await sock.sendMessage(from, { text: "🏓 Pong!" }, { quoted: msg });
@@ -122,7 +128,7 @@ async function handleCommand(sock, msg) {
             `👑 Owner: ${process.env.OWNER_NAME || "RichiieeTheeGoat"}`,
             `📱 Owner Number: ${process.env.OWNER_NUMBER || "254740479599"}`,
             `🔣 Prefix: ${prefix}`,
-            "🌍 Host: Heroku Worker"
+            `🌍 Mode: ${process.env.MODE || "private"}`
           ].join("\n")
         },
         { quoted: msg }
@@ -137,7 +143,7 @@ async function handleCommand(sock, msg) {
         `┃ *OWNER* : ${process.env.OWNER_NAME || "RichiieeTheeGoat"}`,
         `┃ *PREFIX* : [ ${prefix} ]`,
         "┃ *HOST* : Heroku",
-        "┃ *MODE* : Private",
+        `┃ *MODE* : ${process.env.MODE || "private"}`,
         "┗▣",
         "",
         "┏▣ ◈ *MAIN MENU* ◈",
@@ -147,18 +153,13 @@ async function handleCommand(sock, msg) {
         "│➽ owner",
         "│➽ repo",
         "│➽ getsettings",
-        "│➽ settings",
         "│➽ vars",
         "┗▣"
       ].join("\n");
 
       if (fs.existsSync(logoPath)) {
         const imageBuffer = fs.readFileSync(logoPath);
-        await sock.sendMessage(
-          from,
-          { image: imageBuffer, caption: menuText },
-          { quoted: msg }
-        );
+        await sock.sendMessage(from, { image: imageBuffer, caption: menuText }, { quoted: msg });
       } else {
         await sock.sendMessage(from, { text: menuText }, { quoted: msg });
       }
@@ -179,9 +180,7 @@ async function handleCommand(sock, msg) {
     if (command === "repo") {
       await sock.sendMessage(
         from,
-        {
-          text: "🌐 Repo: https://github.com/RichieeTechsHub/Lite-Ollver-MD"
-        },
+        { text: "🌐 Repo: https://github.com/RichieeTechsHub/Lite-Ollver-MD" },
         { quoted: msg }
       );
       return;
@@ -193,12 +192,12 @@ async function handleCommand(sock, msg) {
         {
           text: [
             "⚙️ *CURRENT SETTINGS*",
-            `Bot Name: ${process.env.BOT_NAME || "Lite-Ollver-MD"}`,
-            `Owner Name: ${process.env.OWNER_NAME || "RichiieeTheeGoat"}`,
-            `Owner Number: ${process.env.OWNER_NUMBER || "254740479599"}`,
-            `Prefix: ${prefix}`,
-            `Mode: ${process.env.MODE || "private"}`,
-            `Timezone: ${process.env.TIMEZONE || "Africa/Nairobi"}`
+            `BOT_NAME: ${process.env.BOT_NAME || "Lite-Ollver-MD"}`,
+            `OWNER_NAME: ${process.env.OWNER_NAME || "RichiieeTheeGoat"}`,
+            `OWNER_NUMBER: ${process.env.OWNER_NUMBER || "254740479599"}`,
+            `PREFIX: ${prefix}`,
+            `MODE: ${process.env.MODE || "private"}`,
+            `TIMEZONE: ${process.env.TIMEZONE || "Africa/Nairobi"}`
           ].join("\n")
         },
         { quoted: msg }
@@ -223,6 +222,12 @@ async function handleCommand(sock, msg) {
       );
       return;
     }
+
+    await sock.sendMessage(
+      from,
+      { text: `❌ Unknown command: ${command}` },
+      { quoted: msg }
+    );
   } catch (error) {
     console.error("❌ Command handler error:", error.message);
   }
@@ -257,10 +262,15 @@ async function startBot() {
 
     sock.ev.on("creds.update", saveCreds);
 
-    sock.ev.on("messages.upsert", async ({ messages }) => {
-      const msg = messages?.[0];
-      if (!msg || !msg.message) return;
-      await handleCommand(sock, msg);
+    sock.ev.on("messages.upsert", async ({ messages, type }) => {
+      try {
+        if (type !== "notify") return;
+        const msg = messages?.[0];
+        if (!msg || !msg.message) return;
+        await handleCommand(sock, msg);
+      } catch (error) {
+        console.error("❌ messages.upsert error:", error.message);
+      }
     });
 
     sock.ev.on("connection.update", async (update) => {
