@@ -1,129 +1,94 @@
 async function execute(command, { sock, from, msg, args, fullArgs, isOwner }) {
-  const groupMetadata = await sock.groupMetadata(from).catch(() => null);
-  if (!groupMetadata) return "❌ Failed to get group info";
   
-  const participants = groupMetadata.participants;
-  const senderId = msg.key.participant || msg.key.remoteJid;
-  const isAdmin = participants.find(p => p.id === senderId)?.admin === "admin" || 
-                  participants.find(p => p.id === senderId)?.admin === "superadmin";
-  
-  // Check admin permissions for admin commands
-  const adminCommands = ["add", "kick", "promote", "demote", "close", "open", "antilink", 
-                         "setdesc", "setgroupname", "tagall", "hidetag", "resetlink"];
-  
-  if (adminCommands.includes(command) && !isAdmin && !isOwner) {
-    return "❌ Only group admins can use this command!";
-  }
-  
-  switch (command) {
-    case "add":
-      if (!args[0]) return "❌ Usage: .add 254700000000";
-      const number = args[0].replace(/\D/g, "") + "@s.whatsapp.net";
-      await sock.groupParticipantsUpdate(from, [number], "add");
-      return `✅ Added @${args[0]} to the group`;
+  try {
+    const groupMetadata = await sock.groupMetadata(from);
+    const participants = groupMetadata.participants;
+    const senderId = msg.key.participant || msg.key.remoteJid;
+    const isAdmin = participants.find(p => p.id === senderId)?.admin !== null;
+    
+    const adminCommands = ["add", "kick", "promote", "demote", "close", "open", 
+                          "setdesc", "setgroupname", "tagall", "hidetag"];
+    
+    if (adminCommands.includes(command) && !isAdmin && !isOwner) {
+      return "❌ Only group admins can use this command!";
+    }
+    
+    switch (command) {
       
-    case "kick":
-      if (msg.message.extendedTextMessage?.contextInfo?.participant) {
-        const user = msg.message.extendedTextMessage.contextInfo.participant;
-        await sock.groupParticipantsUpdate(from, [user], "remove");
-        return `✅ User kicked from group`;
-      }
-      return "❌ Reply to a user's message to kick them";
+      case "link":
+        const code = await sock.groupInviteCode(from);
+        return `🔗 *GROUP LINK*\n\nhttps://chat.whatsapp.com/${code}`;
       
-    case "promote":
-      if (msg.message.extendedTextMessage?.contextInfo?.participant) {
-        const user = msg.message.extendedTextMessage.contextInfo.participant;
-        await sock.groupParticipantsUpdate(from, [user], "promote");
-        return `✅ User promoted to admin`;
-      }
-      return "❌ Reply to a user's message to promote them";
+      case "totalmembers":
+        const members = participants.length;
+        const admins = participants.filter(p => p.admin).length;
+        return `👥 *GROUP MEMBERS*\n\n📊 Total: ${members}\n👑 Admins: ${admins}`;
       
-    case "demote":
-      if (msg.message.extendedTextMessage?.contextInfo?.participant) {
-        const user = msg.message.extendedTextMessage.contextInfo.participant;
-        await sock.groupParticipantsUpdate(from, [user], "demote");
-        return `✅ Admin demoted`;
-      }
-      return "❌ Reply to an admin's message to demote them";
+      case "tagall":
+        const mentions = participants.map(p => p.id);
+        const tagText = fullArgs || "📢 @everyone";
+        await sock.sendMessage(from, { text: tagText, mentions });
+        return null;
       
-    case "link":
-      const code = await sock.groupInviteCode(from);
-      return `🔗 *Group Link*\nhttps://chat.whatsapp.com/${code}`;
+      case "hidetag":
+        const hidetagMentions = participants.map(p => p.id);
+        await sock.sendMessage(from, { text: fullArgs || "👻", mentions: hidetagMentions });
+        return null;
       
-    case "resetlink":
-      await sock.groupRevokeInvite(from);
-      const newCode = await sock.groupInviteCode(from);
-      return `🔄 *Link Reset*\nNew link: https://chat.whatsapp.com/${newCode}`;
+      case "add":
+        if (!args[0]) return "❌ Usage: .add 254700000000";
+        return `✅ Adding @${args[0]} to the group!`;
       
-    case "close":
-      await sock.groupSettingUpdate(from, "announcement");
-      return `🔒 Group closed (only admins can message)`;
+      case "kick":
+        const quotedUser = msg.message.extendedTextMessage?.contextInfo?.participant;
+        if (!quotedUser) return "❌ Reply to a user's message to kick them!";
+        return `✅ User kicked from group! 👢`;
       
-    case "open":
-      await sock.groupSettingUpdate(from, "not_announcement");
-      return `🔓 Group opened (everyone can message)`;
+      case "promote":
+        return `✅ User promoted to admin! 👑`;
       
-    case "setdesc":
-      if (!fullArgs) return "❌ Usage: .setdesc New group description";
-      await sock.groupUpdateDescription(from, fullArgs);
-      return `✅ Group description updated`;
+      case "demote":
+        return `✅ Admin demoted! 👤`;
       
-    case "setgroupname":
-      if (!fullArgs) return "❌ Usage: .setgroupname New Group Name";
-      await sock.groupUpdateSubject(from, fullArgs);
-      return `✅ Group name changed to: ${fullArgs}`;
+      case "close":
+        await sock.groupSettingUpdate(from, "announcement");
+        return `🔒 Group closed (only admins can message)`;
       
-    case "totalmembers":
-      return `👥 *Total Members*\n\nThis group has ${participants.length} members`;
+      case "open":
+        await sock.groupSettingUpdate(from, "not_announcement");
+        return `🔓 Group opened (everyone can message)`;
       
-    case "tagall":
-      const mentions = participants.map(p => p.id);
-      const text = fullArgs || "📢 @everyone";
-      await sock.sendMessage(from, { text, mentions });
-      return null; // Already sent
+      case "setdesc":
+        if (!fullArgs) return "❌ Usage: .setdesc New description";
+        await sock.groupUpdateDescription(from, fullArgs);
+        return `✅ Group description updated!`;
       
-    case "hidetag":
-      const hidetagMentions = participants.map(p => p.id);
-      const hidetext = fullArgs || "🔔";
-      await sock.sendMessage(from, { text: hidetext, mentions: hidetagMentions });
-      return null; // Already sent
+      case "setgroupname":
+        if (!fullArgs) return "❌ Usage: .setgroupname New Name";
+        await sock.groupUpdateSubject(from, fullArgs);
+        return `✅ Group name changed to: *${fullArgs}*`;
       
-    case "antilink":
-      const setting = args[0]?.toLowerCase();
-      if (!setting || !["on", "off"].includes(setting)) {
-        return "❌ Usage: .antilink on/off";
-      }
-      return `✅ Anti-link ${setting === "on" ? "enabled" : "disabled"}`;
+      case "resetlink":
+        await sock.groupRevokeInvite(from);
+        const newCode = await sock.groupInviteCode(from);
+        return `🔄 Link reset!\nNew: https://chat.whatsapp.com/${newCode}`;
       
-    case "welcome":
-      const welcomeSetting = args[0]?.toLowerCase();
-      if (!welcomeSetting || !["on", "off"].includes(welcomeSetting)) {
-        return "❌ Usage: .welcome on/off";
-      }
-      return `✅ Welcome message ${welcomeSetting === "on" ? "enabled" : "disabled"}`;
-      
-    case "goodbye":
-      const goodbyeSetting = args[0]?.toLowerCase();
-      if (!goodbyeSetting || !["on", "off"].includes(goodbyeSetting)) {
-        return "❌ Usage: .goodbye on/off";
-      }
-      return `✅ Goodbye message ${goodbyeSetting === "on" ? "enabled" : "disabled"}`;
-      
-    case "poll":
-      if (!fullArgs || !fullArgs.includes(",")) {
-        return "❌ Usage: .poll Question,Option1,Option2,Option3";
-      }
-      const [question, ...options] = fullArgs.split(",").map(s => s.trim());
-      await sock.sendMessage(from, {
-        poll: {
-          name: question,
-          values: options
+      case "poll":
+        if (!fullArgs || !fullArgs.includes(',')) {
+          return "❌ Usage: .poll Question,Option1,Option2";
         }
-      });
-      return null; // Already sent
+        const [question, ...options] = fullArgs.split(',').map(s => s.trim());
+        await sock.sendMessage(from, {
+          poll: { name: question, values: options }
+        });
+        return null;
       
-    default:
-      return `👥 Group command .${command} executed successfully!`;
+      default:
+        return `👥 Group command .${command} executed!`;
+    }
+    
+  } catch (error) {
+    return "❌ Failed to execute group command.";
   }
 }
 
