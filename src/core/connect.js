@@ -117,12 +117,13 @@ async function connect() {
     const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
 
     const { version } = await fetchLatestBaileysVersion();
+    const silentLogger = pino({ level: "fatal" });
 
     console.log("🔄 Connecting to WhatsApp...");
     const sock = makeWASocket({
       version,
       auth: state,
-      logger: pino({ level: "silent" }),
+      logger: silentLogger,
       printQRInTerminal: false,
       markOnlineOnConnect: true,
       syncFullHistory: false,
