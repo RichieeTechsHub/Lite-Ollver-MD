@@ -5,7 +5,6 @@ console.log("║     🚀 LITE-OLLVER-MD WORKER    ║");
 console.log("║     Starting WhatsApp Bot...    ║");
 console.log("╚══════════════════════════════════╝");
 
-// Handle uncaught errors
 process.on('uncaughtException', (err) => {
   console.error('❌ Uncaught Exception:', err.message);
 });
@@ -14,7 +13,6 @@ process.on('unhandledRejection', (err) => {
   console.error('❌ Unhandled Rejection:', err.message);
 });
 
-// Start the bot
 connect().catch(error => {
   console.error("❌ Fatal error:", error);
   setTimeout(() => {
