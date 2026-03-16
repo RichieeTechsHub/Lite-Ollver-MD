@@ -117,13 +117,13 @@ async function connect() {
     const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
 
     const { version } = await fetchLatestBaileysVersion();
-    const silentLogger = pino({ level: "fatal" });
+    const logger = pino({ level: "fatal" });
 
     console.log("🔄 Connecting to WhatsApp...");
     const sock = makeWASocket({
       version,
       auth: state,
-      logger: silentLogger,
+      logger,
       printQRInTerminal: false,
       markOnlineOnConnect: true,
       syncFullHistory: false,
@@ -195,23 +195,17 @@ async function connect() {
       }
     });
 
-    sock.ev.on("messages.upsert", async (m) => {
+    sock.ev.on("messages.upsert", async ({ messages, type }) => {
       try {
-        console.log(
-          "📨 RAW upsert:",
-          JSON.stringify({
-            type: m?.type,
-            count: m?.messages?.length || 0
-          })
-        );
+        console.log(`📨 messages.upsert type=${type} count=${messages?.length || 0}`);
 
-        if (!m?.messages?.length) return;
+        if (!messages?.length) return;
 
-        for (const msg of m.messages) {
+        for (const msg of messages) {
           if (!msg) continue;
 
           console.log(
-            "📩 FULL MESSAGE KEYS:",
+            "📩 EVENT:",
             JSON.stringify({
               remoteJid: msg.key?.remoteJid,
               fromMe: msg.key?.fromMe,
@@ -235,6 +229,7 @@ async function connect() {
     console.error("❌ Connection error:", error.message);
 
     reconnectAttempts += 1;
+
     if (reconnectAttempts <= MAX_RECONNECTS) {
       console.log(`🔄 Retrying in 5 seconds... Attempt ${reconnectAttempts}/${MAX_RECONNECTS}`);
 
