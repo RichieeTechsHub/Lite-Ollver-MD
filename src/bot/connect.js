@@ -6,6 +6,8 @@ if (!global.webcrypto) global.webcrypto = nodeCrypto.webcrypto;
 if (!globalThis.webcrypto) globalThis.webcrypto = nodeCrypto.webcrypto;
 
 const pino = require("pino");
+const fs = require("fs");
+const path = require("path");
 const {
   default: makeWASocket,
   fetchLatestBaileysVersion,
@@ -20,12 +22,23 @@ const {
   decodeSession
 } = require("./session");
 
-const { handleIncomingMessages, sendOwnerConnectedMessage } = require("./handler");
-
 const logger = pino({ level: "silent" });
 
 let reconnectAttempts = 0;
 let isStarting = false;
+
+function getMessageText(message = {}) {
+  return (
+    message.conversation ||
+    message.extendedTextMessage?.text ||
+    message.imageMessage?.caption ||
+    message.videoMessage?.caption ||
+    message.documentMessage?.caption ||
+    message.buttonsResponseMessage?.selectedButtonId ||
+    message.listResponseMessage?.singleSelectReply?.selectedRowId ||
+    ""
+  );
+}
 
 async function prepareSession() {
   if (!(await sessionFilesExist())) {
@@ -40,6 +53,179 @@ async function prepareSession() {
   }
 
   return true;
+}
+
+async function sendStartupMessage(sock, runtimeStart) {
+  try {
+    const myJid = sock.user?.id;
+    if (!myJid) return;
+
+    const logoPath = path.join(process.cwd(), "assets", "logo.png");
+    const ownerNumber = process.env.OWNER_NUMBER || "254740479599";
+    const ownerName = process.env.OWNER_NAME || "RichiieeTheeGoat";
+    const prefix = process.env.PREFIX || ".";
+    const speed = `${Date.now() - runtimeStart} ms`;
+
+    const caption = [
+      "╭━━━〔 *ELITE-OLLVER-MD* 〕━━━╮",
+      "✅ Connected Successfully",
+      "",
+      `⚡ Speed: ${speed}`,
+      `🔣 Prefix: ${prefix}`,
+      `👑 Owner: ${ownerName}`,
+      `📱 Owner Number: ${ownerNumber}`,
+      "",
+      "Bot is now active in your inbox.",
+      "╰━━━━━━━━━━━━━━━━━━━━━━╯"
+    ].join("\n");
+
+    if (fs.existsSync(logoPath)) {
+      const imageBuffer = fs.readFileSync(logoPath);
+      await sock.sendMessage(myJid, {
+        image: imageBuffer,
+        caption
+      });
+    } else {
+      await sock.sendMessage(myJid, { text: caption });
+    }
+
+    console.log("✅ Startup message sent successfully on attempt 1");
+  } catch (error) {
+    console.error("❌ Failed to send startup message:", error.message);
+  }
+}
+
+async function handleCommand(sock, msg) {
+  try {
+    const body = getMessageText(msg.message).trim();
+    if (!body) return;
+
+    const prefix = process.env.PREFIX || ".";
+    if (!body.startsWith(prefix)) return;
+
+    const from = msg.key.remoteJid;
+    const command = body.slice(prefix.length).trim().split(/\s+/)[0].toLowerCase();
+
+    console.log(`📩 Command received: ${body} | fromMe=${msg.key.fromMe} | chat=${from}`);
+
+    if (command === "ping") {
+      await sock.sendMessage(from, { text: "🏓 Pong!" }, { quoted: msg });
+      return;
+    }
+
+    if (command === "alive") {
+      await sock.sendMessage(
+        from,
+        {
+          text: [
+            "✅ *Lite-Ollver-MD* is active.",
+            `👑 Owner: ${process.env.OWNER_NAME || "RichiieeTheeGoat"}`,
+            `📱 Owner Number: ${process.env.OWNER_NUMBER || "254740479599"}`,
+            `🔣 Prefix: ${prefix}`,
+            "🌍 Host: Heroku Worker"
+          ].join("\n")
+        },
+        { quoted: msg }
+      );
+      return;
+    }
+
+    if (command === "menu") {
+      const logoPath = path.join(process.cwd(), "assets", "logo.png");
+      const menuText = [
+        "┏▣ ◈ *Lite-Ollver-MD* ◈",
+        `┃ *OWNER* : ${process.env.OWNER_NAME || "RichiieeTheeGoat"}`,
+        `┃ *PREFIX* : [ ${prefix} ]`,
+        "┃ *HOST* : Heroku",
+        "┃ *MODE* : Private",
+        "┗▣",
+        "",
+        "┏▣ ◈ *MAIN MENU* ◈",
+        "│➽ ping",
+        "│➽ alive",
+        "│➽ menu",
+        "│➽ owner",
+        "│➽ repo",
+        "│➽ getsettings",
+        "│➽ settings",
+        "│➽ vars",
+        "┗▣"
+      ].join("\n");
+
+      if (fs.existsSync(logoPath)) {
+        const imageBuffer = fs.readFileSync(logoPath);
+        await sock.sendMessage(
+          from,
+          { image: imageBuffer, caption: menuText },
+          { quoted: msg }
+        );
+      } else {
+        await sock.sendMessage(from, { text: menuText }, { quoted: msg });
+      }
+      return;
+    }
+
+    if (command === "owner") {
+      await sock.sendMessage(
+        from,
+        {
+          text: `👑 Owner: ${process.env.OWNER_NAME || "RichiieeTheeGoat"}\n📱 Number: ${process.env.OWNER_NUMBER || "254740479599"}`
+        },
+        { quoted: msg }
+      );
+      return;
+    }
+
+    if (command === "repo") {
+      await sock.sendMessage(
+        from,
+        {
+          text: "🌐 Repo: https://github.com/RichieeTechsHub/Lite-Ollver-MD"
+        },
+        { quoted: msg }
+      );
+      return;
+    }
+
+    if (command === "getsettings" || command === "settings") {
+      await sock.sendMessage(
+        from,
+        {
+          text: [
+            "⚙️ *CURRENT SETTINGS*",
+            `Bot Name: ${process.env.BOT_NAME || "Lite-Ollver-MD"}`,
+            `Owner Name: ${process.env.OWNER_NAME || "RichiieeTheeGoat"}`,
+            `Owner Number: ${process.env.OWNER_NUMBER || "254740479599"}`,
+            `Prefix: ${prefix}`,
+            `Mode: ${process.env.MODE || "private"}`,
+            `Timezone: ${process.env.TIMEZONE || "Africa/Nairobi"}`
+          ].join("\n")
+        },
+        { quoted: msg }
+      );
+      return;
+    }
+
+    if (command === "vars") {
+      await sock.sendMessage(
+        from,
+        {
+          text: [
+            "📦 *BOT VARIABLES*",
+            `BOT_NAME: ${process.env.BOT_NAME || "Lite-Ollver-MD"}`,
+            `OWNER_NAME: ${process.env.OWNER_NAME || "RichiieeTheeGoat"}`,
+            `OWNER_NUMBER: ${process.env.OWNER_NUMBER || "254740479599"}`,
+            `PREFIX: ${prefix}`,
+            `MODE: ${process.env.MODE || "private"}`
+          ].join("\n")
+        },
+        { quoted: msg }
+      );
+      return;
+    }
+  } catch (error) {
+    console.error("❌ Command handler error:", error.message);
+  }
 }
 
 async function startBot() {
@@ -71,19 +257,17 @@ async function startBot() {
 
     sock.ev.on("creds.update", saveCreds);
 
-    sock.ev.on("messages.upsert", async (messageEvent) => {
-      try {
-        await handleIncomingMessages(sock, messageEvent);
-      } catch (error) {
-        console.error("❌ Message handler error:", error.message);
-      }
+    sock.ev.on("messages.upsert", async ({ messages }) => {
+      const msg = messages?.[0];
+      if (!msg || !msg.message) return;
+      await handleCommand(sock, msg);
     });
 
     sock.ev.on("connection.update", async (update) => {
       const { connection, lastDisconnect, qr } = update;
 
       if (qr) {
-        console.log("⚠️ QR was generated unexpectedly. SESSION_ID may be invalid or missing.");
+        console.log("⚠️ QR generated unexpectedly. SESSION_ID may be invalid.");
       }
 
       if (connection === "connecting") {
@@ -94,7 +278,7 @@ async function startBot() {
         reconnectAttempts = 0;
         isStarting = false;
         console.log("✅ Lite-Ollver-MD connected successfully.");
-        await sendOwnerConnectedMessage(sock, runtimeStart);
+        await sendStartupMessage(sock, runtimeStart);
       }
 
       if (connection === "close") {
