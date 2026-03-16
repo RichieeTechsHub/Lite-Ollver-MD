@@ -1,3 +1,4 @@
+// server.js - UPDATED VERSION
 const express = require("express");
 const path = require("path");
 const config = require("./config");
@@ -12,11 +13,25 @@ app.get("/", (req, res) => {
 });
 
 app.get("/health", (req, res) => {
-  res.json({ status: "ok", bot: config.BOT_NAME });
+  res.json({ 
+    status: "ok", 
+    bot: config.BOT_NAME,
+    time: new Date().toISOString()
+  });
 });
 
-function startServer() {
-  app.listen(PORT, () => console.log(`🌐 Server on port ${PORT}`));
-}
+// IMPORTANT: This keeps the server running
+const server = app.listen(PORT, () => {
+  console.log(`🌐 Web server running on port ${PORT}`);
+  console.log(`✅ Health check available at /health`);
+});
 
-module.exports = { startServer };
+// Handle graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  server.close(() => {
+    console.log('Server closed');
+  });
+});
+
+module.exports = { startServer: () => server };
