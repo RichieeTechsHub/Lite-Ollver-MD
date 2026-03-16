@@ -23,11 +23,11 @@
   "formation": {
     "web": {
       "quantity": 1,
-      "size": "eco"
+      "size": "basic"     // Changed from "eco" to "basic"
     },
     "worker": {
       "quantity": 1,
-      "size": "eco"
+      "size": "basic"     // Changed from "eco" to "basic"
     }
   }
 }
