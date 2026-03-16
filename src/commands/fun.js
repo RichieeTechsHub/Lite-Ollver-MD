@@ -48,7 +48,7 @@ async function execute(command) {
       return `😄 *JOKE TIME*\n\n${jokes[Math.floor(Math.random() * jokes.length)]}`;
       
     case "memes":
-      return `🖼️ *RANDOM MEME*\n\n${memes[Math.floor(Math.random() * memes.length]}`;
+      return `🖼️ *RANDOM MEME*\n\n${memes[Math.floor(Math.random() * memes.length)]}`;
       
     case "quotes":
       return `💭 *INSPIRATIONAL QUOTE*\n\n${quotes[Math.floor(Math.random() * quotes.length)]}`;
