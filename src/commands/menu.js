@@ -1,5 +1,7 @@
 const config = require("../../config");
 const os = require("os");
+const fs = require("fs");
+const path = require("path");
 
 function getUptime() {
   const uptime = process.uptime();
@@ -30,17 +32,13 @@ function buildMenu() {
   const speed = getSpeed();
   const uptime = getUptime();
   
-  const totalCommands = 126; // Your total commands count
+  const totalCommands = 126;
   
-  // ASCII Logo Card
-  const logoCard = `
-╔══════════════════════════════════╗
+  return `╔══════════════════════════════════╗
 ║     ⚡ LITE-OLLVER-MD ⚡         ║
 ║   WhatsApp Multi-Device Bot      ║
-╚══════════════════════════════════╝`;
+╚══════════════════════════════════╝
 
-  // Main Info Card
-  const infoCard = `
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃           BOT INFO              ┃
 ┠────────────────────────────────┨
@@ -54,104 +52,50 @@ function buildMenu() {
 ┃ 💾 RAM      : ${ram.used}GB/${ram.total}GB (${ram.percent}%)
 ┃ 🌐 Host     : Heroku
 ┃ 📱 Number   : ${config.OWNER_NUMBER}
-┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛`;
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
-  // Commands by Category
-  const commandsCard = `
-┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃        COMMAND CATEGORIES       ┃
-┠────────────────────────────────┨
-┃ 🤖 AI (10)                      ┃
-┃    analyze, blackbox, code,     ┃
-┃    generate, gpt, programming   ┃
-┃    recipe, story, summarize,    ┃
-┃    teach                        ┃
-┠────────────────────────────────┨
-┃ 🎵 AUDIO (7)                    ┃
-┃    bass, deep, reverse, robot,  ┃
-┃    tomp3, toptt, volaudio       ┃
-┠────────────────────────────────┨
-┃ 📥 DOWNLOAD (11)                ┃
-┃    apk, facebook, gdrive,       ┃
-┃    gitclone, image, instagram,  ┃
-┃    mediafire, song, tiktok,     ┃
-┃    twitter, video                ┃
-┠────────────────────────────────┨
-┃ 🎭 FUN (5)                      ┃
-┃    fact, jokes, memes, quotes,  ┃
-┃    trivia                       ┃
-┠────────────────────────────────┨
-┃ 🎮 GAMES (3)                    ┃
-┃    dare, truth, truthordare     ┃
-┠────────────────────────────────┨
-┃ 👥 GROUP (25)                   ┃
-┃    add, antilink, close,        ┃
-┃    demote, goodbye, hidetag,    ┃
-┃    invite, kick, link, open,    ┃
-┃    poll, promote, resetlink,    ┃
-┃    setdesc, setgoodbye,         ┃
-┃    setgroupname, setwelcome,    ┃
-┃    showgoodbye, showwelcome,    ┃
-┃    tagadmin, tagall,            ┃
-┃    testgoodbye, testwelcome,    ┃
-┃    totalmembers, welcome         ┃
-┠────────────────────────────────┨
-┃ 🖼️ IMAGE (2)                    ┃
-┃    remini, wallpaper             ┃
-┠────────────────────────────────┨
-┃ 📌 OTHER (10)                   ┃
-┃    alive, botstatus, menu,      ┃
-┃    owner, pair, ping, repo,     ┃
-┃    runtime, support, time        ┃
-┠────────────────────────────────┨
-┃ 👑 OWNER (12)                   ┃
-┃    addsudo, block, delsudo,     ┃
-┃    join, leave, restart,        ┃
-┃    setbio, setprofilepic,       ┃
-┃    tostatus, unblock, update,   ┃
-┃    warn                         ┃
-┠────────────────────────────────┨
-┃ 🕋 RELIGION (2)                 ┃
-┃    bible, quran                  ┃
-┠────────────────────────────────┨
-┃ 🔍 SEARCH (6)                   ┃
-┃    define, imdb, lyrics,        ┃
-┃    shazam, weather, yts          ┃
-┠────────────────────────────────┨
-┃ ⚙️ SETTINGS (16)                ┃
-┃    autoreactstatus,             ┃
-┃    autoreadstatus,              ┃
-┃    autorecording, autotyping,   ┃
-┃    chatbot, getsettings, mode,  ┃
-┃    setbotname, setmenuimage,    ┃
-┃    setownername, setownernumber,┃
-┃    setprefix, setstatusemoji,   ┃
-┃    settimezone, statusdelay,    ┃
-┃    statussettings                ┃
-┠────────────────────────────────┨
-┃ 💬 SUPPORT (3)                  ┃
-┃    feedback, helpers, support    ┃
-┠────────────────────────────────┨
-┃ 🔧 TOOLS (10)                   ┃
-┃    calculate, fancy, genpass,   ┃
-┃    getpp, qrcode, say, ssweb,   ┃
-┃    sticker, tinyurl, tourl       ┃
-┠────────────────────────────────┨
-┃ 🌐 TRANSLATE (1)                ┃
-┃    translate                     ┃
-┠────────────────────────────────┨
-┃ 🎬 VIDEO (3)                    ┃
-┃    toaudio, toimage, tovideo     ┃
-┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛`;
+╔══════════════════════════════════╗
+║         BASIC COMMANDS           ║
+╠══════════════════════════════════╣
+║ ➤ .ping    - Check bot response  ║
+║ ➤ .alive   - Bot status          ║
+║ ➤ .menu    - Show this menu      ║
+║ ➤ .owner   - Owner info          ║
+║ ➤ .repo    - GitHub repository   ║
+║ ➤ .runtime - Bot uptime          ║
+║ ➤ .support - Support group       ║
+║ ➤ .time    - Current time        ║
+╚══════════════════════════════════╝
 
-  const footer = `
 ╔══════════════════════════════════╗
 ║  Total Commands: ${totalCommands}               ║
 ║  Type .help <command> for usage  ║
 ║  Support: ${config.SUPPORT_GROUP} ║
 ╚══════════════════════════════════╝`;
-
-  return logoCard + "\n" + infoCard + "\n" + commandsCard + "\n" + footer;
 }
 
-module.exports = { buildMenu };
+async function sendMenuWithLogo(sock, from, msg) {
+  try {
+    const logoPath = path.join(process.cwd(), "assets", "logo.png");
+    
+    if (fs.existsSync(logoPath)) {
+      const logoBuffer = fs.readFileSync(logoPath);
+      const menuText = buildMenu();
+      
+      await sock.sendMessage(from, {
+        image: logoBuffer,
+        caption: menuText
+      }, { quoted: msg });
+      
+      console.log("✅ Menu sent with logo");
+    } else {
+      await sock.sendMessage(from, { text: buildMenu() }, { quoted: msg });
+      console.log("✅ Menu sent (text only)");
+    }
+  } catch (error) {
+    console.error("❌ Error sending menu:", error);
+    await sock.sendMessage(from, { text: buildMenu() }, { quoted: msg });
+  }
+}
+
+module.exports = { buildMenu, sendMenuWithLogo };
