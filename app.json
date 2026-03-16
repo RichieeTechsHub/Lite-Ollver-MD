@@ -1,9 +1,9 @@
 {
   "name": "Lite-Ollver-MD",
-  "description": "WhatsApp Bot",
+  "description": "WhatsApp Bot with 126+ commands",
   "repository": "https://github.com/RichieeTechsHub/Lite-Ollver-MD",
   "logo": "https://raw.githubusercontent.com/RichieeTechsHub/Lite-Ollver-MD/main/assets/logo.png",
-  "keywords": ["whatsapp", "bot", "baileys"],
+  "keywords": ["whatsapp", "bot", "baileys", "nodejs"],
   "env": {
     "BOT_NAME": {
       "description": "Your bot display name",
@@ -11,7 +11,7 @@
       "required": true
     },
     "SESSION_ID": {
-      "description": "Your WhatsApp session ID",
+      "description": "Your WhatsApp session ID from https://lite-ollver-session.onrender.com",
       "required": true
     }
   },
