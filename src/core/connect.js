@@ -1,26 +1,23 @@
-// src/core/connect.js
-const { default: makeWASocket, useMultiFileAuthState } = require("@whiskeysockets/baileys");
-const pino = require("pino");
-const { handleMessages } = require("./handler");
-const config = require("../../config");
-const fs = require("fs");
-
 async function connect() {
-  console.log("📁 Initializing session...");
+  console.log("📁 Checking session folder...");
   
-  // Create session folder
+  // Check if session folder exists
   if (!fs.existsSync("./session")) {
-    fs.mkdirSync("./session", { recursive: true });
+    console.log("❌ No session folder found!");
+    console.log("📌 Please add your session files");
+    return;
+  }
+  
+  const files = fs.readdirSync("./session");
+  console.log(`✅ Found ${files.length} session files`);
+  
+  if (files.length === 0) {
+    console.log("❌ Session folder is empty!");
+    return;
   }
 
-  // If SESSION_ID is provided (from Heroku env), save it
-  if (config.SESSION_ID && config.SESSION_ID !== "your_session_id_here") {
-    console.log("🔐 Using SESSION_ID from environment");
-    // Save the session ID to a file or use it directly
-    // This depends on how your session generator formats the ID
-    fs.writeFileSync("./session/session.txt", config.SESSION_ID);
-  }
-
+  console.log("🔐 Attempting to connect with existing session...");
+  
   const { state, saveCreds } = await useMultiFileAuthState("./session");
   
   const sock = makeWASocket({
@@ -29,21 +26,21 @@ async function connect() {
     printQRInTerminal: false
   });
 
-  sock.ev.on("creds.update", saveCreds);
-  
-  sock.ev.on("connection.update", ({ connection }) => {
-    if (connection === "open") {
-      console.log("✅ Bot connected successfully!");
-      console.log(`👑 Owner: ${config.OWNER_NAME}`);
-      console.log(`🔣 Prefix: ${config.PREFIX}`);
+  sock.ev.on("connection.update", ({ connection, lastDisconnect }) => {
+    if (connection === "connecting") {
+      console.log("🔄 Connecting to WhatsApp...");
     }
-  });
-
-  sock.ev.on("messages.upsert", async ({ messages }) => {
-    await handleMessages(sock, messages[0]);
+    
+    if (connection === "open") {
+      console.log("✅✅✅ BOT CONNECTED SUCCESSFULLY! ✅✅✅");
+      console.log(`👑 Logged in as: ${sock.user?.name || "Unknown"}`);
+      console.log(`📱 Phone: ${sock.user?.id || "Unknown"}`);
+    }
+    
+    if (connection === "close") {
+      console.log("❌ Connection closed:", lastDisconnect?.error?.message);
+    }
   });
 
   return sock;
 }
-
-module.exports = connect;
