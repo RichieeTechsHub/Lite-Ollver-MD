@@ -1,13 +1,10 @@
 const nodeCrypto = require("crypto");
 
-// Fix: ensure crypto exists globally for libraries that expect it
-if (!global.crypto) {
-  global.crypto = nodeCrypto.webcrypto;
-}
-
-if (!globalThis.crypto) {
-  globalThis.crypto = nodeCrypto.webcrypto;
-}
+// Make crypto available everywhere before loading the bot
+global.crypto = nodeCrypto;
+globalThis.crypto = nodeCrypto;
+global.webcrypto = nodeCrypto.webcrypto;
+globalThis.webcrypto = nodeCrypto.webcrypto;
 
 const { startBot } = require("./src/bot/connect");
 
