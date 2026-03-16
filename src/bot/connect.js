@@ -15,7 +15,7 @@ const {
   sessionFilesExist,
   decodeSession
 } = require("./session");
-const { buildMainMenu } = require("./menu");
+const { getSettings } = require("../utils/settings");
 
 const logger = pino({ level: "silent" });
 
@@ -34,42 +34,41 @@ async function prepareSession() {
   return true;
 }
 
-async function replyText(sock, msg, text) {
-  await sock.sendMessage(msg.key.remoteJid, { text }, { quoted: msg });
+function cleanNumber(value = "") {
+  return String(value).replace(/\D/g, "");
 }
 
-async function sendMenu(sock, msg) {
-  const menuText = buildMainMenu({
-    ownerName: config.OWNER_NAME,
-    prefix: config.PREFIX,
-    mode: config.MODE,
-    version: config.VERSION,
-    host: "Heroku",
-    speed: "0.2100"
-  });
+function loadAllCommandFiles() {
+  const commandsPath = path.join(__dirname, "../commands");
+  const commandFiles = [];
 
-  const logoPath = path.join(process.cwd(), "assets", "logo.png");
+  if (!fs.existsSync(commandsPath)) return commandFiles;
 
-  if (fs.existsSync(logoPath)) {
-    const imageBuffer = fs.readFileSync(logoPath);
-    await sock.sendMessage(
-      msg.key.remoteJid,
-      {
-        image: imageBuffer,
-        caption: menuText
-      },
-      { quoted: msg }
-    );
-    return;
+  const categories = fs.readdirSync(commandsPath);
+
+  for (const category of categories) {
+    const categoryPath = path.join(commandsPath, category);
+
+    if (fs.existsSync(categoryPath) && fs.lstatSync(categoryPath).isDirectory()) {
+      const files = fs
+        .readdirSync(categoryPath)
+        .filter((file) => file.endsWith(".js"));
+
+      for (const file of files) {
+        commandFiles.push(path.join(categoryPath, file));
+      }
+    }
   }
 
-  await replyText(sock, msg, menuText);
+  return commandFiles;
 }
 
-async function handleIncomingMessages(sock, messageEvent) {
+async function executeCommand(sock, messageEvent, runtimeStart) {
   try {
     const msg = messageEvent?.messages?.[0];
     if (!msg || !msg.message) return;
+
+    const settings = await getSettings();
 
     const body =
       msg.message.conversation ||
@@ -78,58 +77,87 @@ async function handleIncomingMessages(sock, messageEvent) {
       msg.message.videoMessage?.caption ||
       "";
 
+    if (!body) return;
+
     console.log("📩 Incoming message:", {
       from: msg?.key?.remoteJid,
       fromMe: msg?.key?.fromMe,
       text: body
     });
 
-    const prefix = config.PREFIX || ".";
+    const prefix = settings.prefix || config.PREFIX || ".";
     if (!body.startsWith(prefix)) return;
 
     const args = body.slice(prefix.length).trim().split(/ +/);
     const command = args.shift()?.toLowerCase();
-
     if (!command) return;
 
-    if (command === "ping") {
-      return await replyText(sock, msg, "Pong 🏓");
-    }
+    const commandFiles = loadAllCommandFiles();
 
-    if (command === "alive") {
-      return await replyText(
-        sock,
-        msg,
-        `✅ *${config.BOT_NAME}* is active and running.\n👑 Owner: ${config.OWNER_NAME}\n🌍 Mode: ${config.MODE}\n⌨️ Prefix: ${config.PREFIX}`
-      );
-    }
+    for (const file of commandFiles) {
+      delete require.cache[require.resolve(file)];
+      const cmd = require(file);
 
-    if (command === "menu" || command === "help") {
-      return await sendMenu(sock, msg);
-    }
+      if (
+        cmd.name === command ||
+        (Array.isArray(cmd.alias) && cmd.alias.includes(command))
+      ) {
+        const reply = async (text) => {
+          await sock.sendMessage(msg.key.remoteJid, { text }, { quoted: msg });
+        };
 
-    if (command === "owner") {
-      return await replyText(
-        sock,
-        msg,
-        `👑 Owner: ${config.OWNER_NAME}\n📱 Number: ${config.OWNER_NUMBER}`
-      );
-    }
-
-    if (command === "repo") {
-      return await replyText(
-        sock,
-        msg,
-        "🌐 Repo: https://github.com/RichieeTechsHub/Lite-Ollver-MD"
-      );
+        return await cmd.execute({
+          sock,
+          msg,
+          args,
+          command,
+          config,
+          settings,
+          runtimeStart,
+          reply
+        });
+      }
     }
   } catch (error) {
-    console.error("❌ Inline handler crashed:", error);
+    console.error("❌ Command execution crashed:", error);
+  }
+}
+
+async function sendOwnerConnectedMessage(sock, runtimeStart) {
+  try {
+    const settings = await getSettings();
+    const ownerNumber = cleanNumber(settings.ownerNumber || config.OWNER_NUMBER);
+
+    if (!ownerNumber) return;
+
+    const ownerJid = `${ownerNumber}@s.whatsapp.net`;
+    const speed = `${Date.now() - runtimeStart} ms`;
+    const prefix = settings.prefix || config.PREFIX || ".";
+    const ownerName = settings.ownerName || config.OWNER_NAME || "Owner";
+    const waLink = `https://wa.me/${ownerNumber}`;
+
+    const text = [
+      "╭━━━〔 *LITE-OLLVER-MD* 〕━━━╮",
+      "✅ Connected Successfully",
+      "",
+      `⚡ Speed: ${speed}`,
+      `🔣 Prefix: ${prefix}`,
+      `👑 Owner: ${ownerName}`,
+      `🔗 WhatsApp: ${waLink}`,
+      "",
+      "Bot is now active in your inbox.",
+      "╰━━━━━━━━━━━━━━━━━━━━━━╯"
+    ].join("\n");
+
+    await sock.sendMessage(ownerJid, { text });
+  } catch (error) {
+    console.error("❌ Failed to send owner startup message:", error);
   }
 }
 
 async function startBot() {
   try {
+    const runtimeStart = Date.now();
     const ready = await prepareSession();
 
     if (!ready) {
@@ -157,7 +185,7 @@ async function startBot() {
     sock.ev.on("creds.update", saveCreds);
 
     sock.ev.on("messages.upsert", async (messageEvent) => {
-      await handleIncomingMessages(sock, messageEvent);
+      await executeCommand(sock, messageEvent, runtimeStart);
     });
 
     sock.ev.on("connection.update", async (update) => {
@@ -172,6 +200,8 @@ async function startBot() {
         console.log(`🤖 Bot Name: ${config.BOT_NAME}`);
         console.log(`👑 Owner: ${config.OWNER_NAME}`);
         console.log(`🌍 Mode: ${config.MODE}`);
+
+        await sendOwnerConnectedMessage(sock, runtimeStart);
       }
 
       if (connection === "close") {
