@@ -195,24 +195,37 @@ async function connect() {
       }
     });
 
-    sock.ev.on("messages.upsert", async ({ messages, type }) => {
+    sock.ev.on("messages.upsert", async (m) => {
       try {
-        console.log(`📨 messages.upsert type=${type} count=${messages?.length || 0}`);
+        console.log(
+          "📨 RAW upsert:",
+          JSON.stringify({
+            type: m?.type,
+            count: m?.messages?.length || 0
+          })
+        );
 
-        if (!messages?.length) return;
+        if (!m?.messages?.length) return;
 
-        for (const msg of messages) {
-          if (!msg?.message) continue;
+        for (const msg of m.messages) {
+          if (!msg) continue;
 
-          const from = msg.key?.remoteJid || "unknown";
-          const fromMe = !!msg.key?.fromMe;
+          console.log(
+            "📩 FULL MESSAGE KEYS:",
+            JSON.stringify({
+              remoteJid: msg.key?.remoteJid,
+              fromMe: msg.key?.fromMe,
+              participant: msg.key?.participant,
+              hasMessage: !!msg.message
+            })
+          );
 
-          console.log(`📩 Incoming event from=${from} fromMe=${fromMe}`);
+          if (!msg.message) continue;
 
           await handleMessages(sock, msg);
         }
       } catch (error) {
-        console.error("❌ Message handling error:", error.message);
+        console.error("❌ Message handling error:", error);
       }
     });
 
