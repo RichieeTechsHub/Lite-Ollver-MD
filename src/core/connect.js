@@ -131,7 +131,7 @@ async function connect() {
 
     sock.ev.on("creds.update", saveCreds);
 
-    sock.ev.on("connection.update", ({ connection, lastDisconnect, qr }) => {
+    sock.ev.on("connection.update", async ({ connection, lastDisconnect, qr }) => {
       if (qr) {
         console.log("⚠️ QR generated. Current SESSION_ID/session is not valid for automatic login.");
       }
@@ -156,9 +156,8 @@ async function connect() {
         console.log(`🤖 Bot: ${config.BOT_NAME}`);
         console.log(`🔣 Prefix: ${config.PREFIX}`);
         console.log("📱 Logged in successfully!");
-        
-        // Send startup message to owner
-        sendStartupMessage(sock);
+
+        await sendStartupMessage(sock);
       }
 
       if (connection === "close") {
@@ -197,12 +196,20 @@ async function connect() {
 
     sock.ev.on("messages.upsert", async ({ messages, type }) => {
       try {
-        if (type !== "notify") return;
+        console.log(`📨 messages.upsert type=${type} count=${messages?.length || 0}`);
 
-        const msg = messages?.[0];
-        if (!msg?.message) return;
+        if (!messages?.length) return;
 
-        await handleMessages(sock, msg);
+        for (const msg of messages) {
+          if (!msg?.message) continue;
+
+          const from = msg.key?.remoteJid || "unknown";
+          const fromMe = !!msg.key?.fromMe;
+
+          console.log(`📩 Incoming event from=${from} fromMe=${fromMe}`);
+
+          await handleMessages(sock, msg);
+        }
       } catch (error) {
         console.error("❌ Message handling error:", error.message);
       }
