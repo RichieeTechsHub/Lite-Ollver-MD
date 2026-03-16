@@ -27,14 +27,14 @@ async function handleMessages(sock, msg) {
     const senderNumber = sender.split("@")[0];
     const isOwner = senderNumber === config.OWNER_NUMBER;
     
-    // Extract text from various message types
+    // Extract text from message
     const text = msg.message.conversation || 
                  msg.message.extendedTextMessage?.text || 
                  msg.message.imageMessage?.caption || 
                  msg.message.videoMessage?.caption || 
                  "";
     
-    // Log all incoming messages (for debugging)
+    // Log all incoming messages
     if (text) {
       console.log(`📨 [${new Date().toLocaleTimeString()}] From: ${senderNumber}${isGroup ? ' (group)' : ' (inbox)'} - ${text.substring(0, 30)}${text.length > 30 ? '...' : ''}`);
     }
@@ -95,7 +95,7 @@ async function handleMessages(sock, msg) {
         response = `💬 *Support*\n\n👥 Group: ${config.SUPPORT_GROUP}\n📞 Owner: wa.me/${config.OWNER_NUMBER}`;
         break;
         
-      // Route to other command modules
+      // AI commands
       case "analyze":
       case "blackbox":
       case "code":
@@ -109,6 +109,7 @@ async function handleMessages(sock, msg) {
         response = await aiCmd.execute(command, { args, fullArgs });
         break;
         
+      // Audio commands
       case "bass":
       case "deep":
       case "reverse":
@@ -119,6 +120,7 @@ async function handleMessages(sock, msg) {
         response = await audioCmd.execute(command, { args, fullArgs });
         break;
         
+      // Download commands
       case "apk":
       case "facebook":
       case "gdrive":
@@ -133,6 +135,7 @@ async function handleMessages(sock, msg) {
         response = await downloadCmd.execute(command, { args, fullArgs });
         break;
         
+      // Fun commands
       case "fact":
       case "jokes":
       case "memes":
@@ -141,6 +144,7 @@ async function handleMessages(sock, msg) {
         response = await funCmd.execute(command);
         break;
         
+      // Games commands
       case "dare":
       case "truth":
       case "truthordare":
@@ -180,6 +184,7 @@ async function handleMessages(sock, msg) {
         }
         break;
         
+      // Image commands
       case "remini":
       case "wallpaper":
         response = await imageCmd.execute(command, { args, fullArgs });
@@ -205,11 +210,13 @@ async function handleMessages(sock, msg) {
         }
         break;
         
+      // Religion commands
       case "bible":
       case "quran":
         response = await religionCmd.execute(command, { args, fullArgs });
         break;
         
+      // Search commands
       case "define":
       case "imdb":
       case "lyrics":
@@ -219,6 +226,7 @@ async function handleMessages(sock, msg) {
         response = await searchCmd.execute(command, { args, fullArgs });
         break;
         
+      // Settings commands
       case "autoreactstatus":
       case "autoreadstatus":
       case "autorecording":
@@ -242,12 +250,14 @@ async function handleMessages(sock, msg) {
         }
         break;
         
+      // Support commands
       case "feedback":
       case "helpers":
       case "support":
         response = await supportCmd.execute(command, { config });
         break;
         
+      // Tools commands
       case "calculate":
       case "fancy":
       case "genpass":
@@ -261,10 +271,12 @@ async function handleMessages(sock, msg) {
         response = await toolsCmd.execute(command, { sock, from, msg, args, fullArgs });
         break;
         
+      // Translate commands
       case "translate":
         response = await translateCmd.execute(command, { args, fullArgs });
         break;
         
+      // Video commands
       case "toaudio":
       case "toimage":
       case "tovideo":
@@ -272,7 +284,6 @@ async function handleMessages(sock, msg) {
         break;
         
       default:
-        // Command not found
         console.log(`❓ Unknown command: ${command}`);
         return;
     }
@@ -284,11 +295,6 @@ async function handleMessages(sock, msg) {
     
   } catch (error) {
     console.error("❌ Handler error:", error);
-    try {
-      await sock.sendMessage(msg.key.remoteJid, { 
-        text: "❌ An error occurred while processing your command." 
-      });
-    } catch (e) {}
   }
 }
 
