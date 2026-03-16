@@ -4,6 +4,7 @@
   "repository": "https://github.com/RichieeTechsHub/Lite-Ollver-MD",
   "logo": "https://raw.githubusercontent.com/RichieeTechsHub/Lite-Ollver-MD/main/assets/logo.png",
   "keywords": ["whatsapp", "bot", "baileys", "nodejs"],
+  "stack": "heroku-22",
   "env": {
     "BOT_NAME": {
       "description": "Your bot display name",
