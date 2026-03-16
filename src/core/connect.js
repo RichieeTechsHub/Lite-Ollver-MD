@@ -20,7 +20,8 @@ const config = require("../../config");
 let isConnecting = false;
 let reconnectTimeout = null;
 let reconnectAttempts = 0;
-const MAX_RECONNECTS = 5;
+const MAX_RECONNECTS = 999; // Keep trying forever
+let sock = null;
 
 function cleanSessionId(sessionId = "") {
   return String(sessionId)
@@ -45,7 +46,7 @@ async function writeSessionFromEnv(sessionDir) {
     decoded = Buffer.from(cleaned, "base64").toString("utf-8");
   } catch (error) {
     console.log("❌ Failed to base64 decode SESSION_ID");
-    throw error;
+    return false;
   }
 
   let parsed;
@@ -53,11 +54,11 @@ async function writeSessionFromEnv(sessionDir) {
     parsed = JSON.parse(decoded);
   } catch (error) {
     console.log("❌ SESSION_ID decoded text is not valid JSON");
-    throw error;
+    return false;
   }
 
   if (!parsed || typeof parsed !== "object") {
-    throw new Error("Decoded SESSION_ID is invalid");
+    return false;
   }
 
   if (parsed.creds) {
@@ -86,6 +87,16 @@ async function writeSessionFromEnv(sessionDir) {
 
   console.log("✅ SESSION_ID saved as creds.json.");
   return true;
+}
+
+// Keep connection alive
+function startKeepAlive(sock) {
+  setInterval(() => {
+    if (sock?.user) {
+      sock.sendPresenceUpdate('available');
+      console.log("💓 Keep-alive ping sent");
+    }
+  }, 25000); // Send every 25 seconds
 }
 
 async function connect() {
@@ -117,26 +128,25 @@ async function connect() {
     const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
 
     const { version } = await fetchLatestBaileysVersion();
-    const logger = pino({ level: "fatal" });
 
     console.log("🔄 Connecting to WhatsApp...");
-    const sock = makeWASocket({
+    sock = makeWASocket({
       version,
       auth: state,
-      logger,
+      logger: pino({ level: "silent" }),
       printQRInTerminal: false,
       markOnlineOnConnect: true,
       syncFullHistory: false,
-      browser: ["Lite-Ollver-MD", "Chrome", "1.0.0"]
+      browser: ["Lite-Ollver-MD", "Chrome", "1.0.0"],
+      // Keep connection alive
+      keepAliveIntervalMs: 25000,
+      generateHighQualityLinkPreview: false,
+      shouldSyncHistory: false
     });
 
     sock.ev.on("creds.update", saveCreds);
 
-    sock.ev.on("connection.update", async ({ connection, lastDisconnect, qr }) => {
-      if (qr) {
-        console.log("⚠️ QR generated. Current SESSION_ID/session is not valid for automatic login.");
-      }
-
+    sock.ev.on("connection.update", async ({ connection, lastDisconnect }) => {
       if (connection === "connecting") {
         console.log("🔄 Connecting to WhatsApp...");
       }
@@ -156,9 +166,36 @@ async function connect() {
         console.log(`👑 Owner: ${config.OWNER_NAME}`);
         console.log(`🤖 Bot: ${config.BOT_NAME}`);
         console.log(`🔣 Prefix: ${config.PREFIX}`);
-        console.log("📱 Logged in successfully!");
+        console.log(`📱 Logged in as: ${sock.user?.id || 'Unknown'}`);
+        
+        // Start keep-alive
+        startKeepAlive(sock);
+        
+        // Send startup message to owner's inbox
+        try {
+          const ownerJid = config.OWNER_NUMBER + "@s.whatsapp.net";
+          await sock.sendMessage(ownerJid, { 
+            text: `╔══════════════════════════════════╗
+║   ✅ BOT CONNECTED SUCCESSFULLY  ║
+╚══════════════════════════════════╝
 
-        await sendStartupMessage(sock);
+👑 Owner: ${config.OWNER_NAME}
+🤖 Bot: ${config.BOT_NAME}
+🔣 Prefix: ${config.PREFIX}
+🌍 Mode: ${config.MODE}
+⚡ Status: Online
+
+╔══════════════════════════════════╗
+║   📥 Bot is active NOW!          ║
+║   Try sending: .ping             ║
+║                .menu              ║
+║                .owner             ║
+╚══════════════════════════════════╝` 
+          });
+          console.log("✅ Startup message sent to owner");
+        } catch (error) {
+          console.log("⚠️ Could not send startup message:", error.message);
+        }
       }
 
       if (connection === "close") {
@@ -178,70 +215,46 @@ async function connect() {
         }
 
         reconnectAttempts += 1;
-
-        if (reconnectAttempts > MAX_RECONNECTS) {
-          console.log("🛑 Too many reconnect attempts. Stopping.");
-          return;
-        }
-
-        console.log(`🔄 Reconnecting in 5 seconds... Attempt ${reconnectAttempts}/${MAX_RECONNECTS}`);
+        console.log(`🔄 Reconnecting in 3 seconds... Attempt ${reconnectAttempts}`);
 
         if (reconnectTimeout) clearTimeout(reconnectTimeout);
         reconnectTimeout = setTimeout(() => {
           connect().catch((err) => {
             console.error("❌ Reconnect failed:", err.message);
           });
-        }, 5000);
+        }, 3000);
       }
     });
 
+    // Listen for messages
     sock.ev.on("messages.upsert", async ({ messages, type }) => {
       try {
-        console.log(`📨 messages.upsert type=${type} count=${messages?.length || 0}`);
-
-        if (!messages?.length) return;
-
-        for (const msg of messages) {
-          if (!msg) continue;
-
-          console.log(
-            "📩 EVENT:",
-            JSON.stringify({
-              remoteJid: msg.key?.remoteJid,
-              fromMe: msg.key?.fromMe,
-              participant: msg.key?.participant,
-              hasMessage: !!msg.message
-            })
-          );
-
-          if (!msg.message) continue;
-
-          await handleMessages(sock, msg);
-        }
+        if (type !== "notify") return;
+        const msg = messages?.[0];
+        if (!msg?.message) return;
+        
+        console.log(`📩 Message received from: ${msg.key.remoteJid}`);
+        await handleMessages(sock, msg);
       } catch (error) {
-        console.error("❌ Message handling error:", error);
+        console.error("❌ Message handling error:", error.message);
       }
     });
+
+    // Listen for presence updates
+    sock.ev.on("presence.update", () => {});
 
     return sock;
   } catch (error) {
     isConnecting = false;
     console.error("❌ Connection error:", error.message);
 
-    reconnectAttempts += 1;
-
-    if (reconnectAttempts <= MAX_RECONNECTS) {
-      console.log(`🔄 Retrying in 5 seconds... Attempt ${reconnectAttempts}/${MAX_RECONNECTS}`);
-
-      if (reconnectTimeout) clearTimeout(reconnectTimeout);
-      reconnectTimeout = setTimeout(() => {
-        connect().catch((err) => {
-          console.error("❌ Retry failed:", err.message);
-        });
-      }, 5000);
-    } else {
-      console.log("🛑 Too many retries. Stopping.");
-    }
+    console.log(`🔄 Retrying in 5 seconds...`);
+    if (reconnectTimeout) clearTimeout(reconnectTimeout);
+    reconnectTimeout = setTimeout(() => {
+      connect().catch((err) => {
+        console.error("❌ Retry failed:", err.message);
+      });
+    }, 5000);
   }
 }
 
