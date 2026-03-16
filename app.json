@@ -1,14 +1,10 @@
 {
   "name": "Lite-Ollver-MD",
-  "description": "Lite-Ollver-MD WhatsApp bot for Heroku",
+  "description": "Lite-Ollver-MD WhatsApp Multi-Device Bot",
   "repository": "https://github.com/RichieeTechsHub/Lite-Ollver-MD",
   "logo": "https://raw.githubusercontent.com/RichieeTechsHub/Lite-Ollver-MD/main/assets/logo.png",
-  "keywords": ["whatsapp", "baileys", "bot", "nodejs"],
+  "keywords": ["whatsapp", "baileys", "bot", "nodejs", "multi-device"],
   "env": {
-    "SESSION_ID": {
-      "description": "Paste your generated WhatsApp session ID",
-      "required": true
-    },
     "BOT_NAME": {
       "description": "Bot display name",
       "value": "Lite-Ollver-MD",
@@ -16,34 +12,34 @@
     },
     "OWNER_NAME": {
       "description": "Owner display name",
-      "value": "RichiieeTheeGoat",
+      "value": "RichieeTheeGoat",
       "required": true
     },
     "OWNER_NUMBER": {
-      "description": "Owner WhatsApp number in international format",
+      "description": "Owner WhatsApp number",
       "value": "254740479599",
       "required": true
     },
     "PREFIX": {
-      "description": "Bot command prefix",
+      "description": "Command prefix",
       "value": ".",
       "required": true
     },
     "MODE": {
       "description": "Bot mode",
-      "value": "private",
-      "required": true
-    },
-    "TIMEZONE": {
-      "description": "Timezone",
-      "value": "Africa/Nairobi",
+      "value": "public",
       "required": true
     }
   },
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    }
+  ],
   "formation": {
     "worker": {
       "quantity": 1,
-      "size": "basic"
+      "size": "eco"
     }
   }
 }

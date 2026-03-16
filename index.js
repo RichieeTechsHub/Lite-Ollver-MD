@@ -1,8 +1,6 @@
-const startBot = require("./src/bot/connect");
+const { startServer } = require("./server");
+const connect = require("./src/core/connect");
 
 console.log("🚀 Starting Lite-Ollver-MD...");
-
-startBot().catch((err) => {
-  console.error("❌ Bot start error:", err);
-  process.exit(1);
-});
+startServer();
+connect().catch(console.error);

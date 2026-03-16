@@ -1,42 +1,26 @@
-# Dependencies
+# Node modules
 node_modules/
 
-# Environment variables
-.env
-
-# Session files
+# Session folder (don't upload your session!)
 session/
-src/session/
-src/bot/session/
-temp/
+creds.json
+*.json
+
+# Environment files
+.env
+.env.local
 
 # Logs
-logs/
 *.log
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+
+# Temp files
+temp/
+*.tmp
 
 # OS files
 .DS_Store
 Thumbs.db
 
-# VSCode settings
-.vscode/
-
-# Render / build cache
-.cache/
-
-# Heroku local files
-.heroku/
-
-# Package lock optional
-package-lock.json
-
-# System temp
-tmp/
-temp/
-
-# Database backups
-*.backup
-*.bak
+# Settings (if you want to keep local)
+settings.json

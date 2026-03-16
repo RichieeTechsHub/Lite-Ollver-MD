@@ -1,18 +1,21 @@
 {
   "name": "lite-ollver-md",
   "version": "1.0.0",
+  "description": "Lite-Ollver-MD WhatsApp Multi-Device Bot",
   "main": "index.js",
-  "type": "commonjs",
   "scripts": {
-    "start": "node web.js"
+    "start": "node index.js",
+    "worker": "node index.js",
+    "web": "node server.js"
   },
   "dependencies": {
-    "@whiskeysockets/baileys": "^6.7.5",
-    "express": "^4.19.2",
+    "@whiskeysockets/baileys": "^6.7.9",
+    "express": "^4.18.2",
+    "pino": "^8.17.2",
+    "qrcode-terminal": "^0.12.0",
     "fs-extra": "^11.2.0",
-    "pino": "^8.19.0"
+    "axios": "^1.6.7"
   },
-  "engines": {
-    "node": "18.x"
-  }
+  "author": "RichieeTheeGoat",
+  "license": "MIT"
 }
