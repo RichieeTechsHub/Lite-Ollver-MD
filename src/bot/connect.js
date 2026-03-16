@@ -1,3 +1,19 @@
+const nodeCrypto = require("crypto");
+
+// Patch crypto BEFORE loading Baileys
+if (!global.crypto) {
+  global.crypto = nodeCrypto.webcrypto;
+}
+if (!globalThis.crypto) {
+  globalThis.crypto = nodeCrypto.webcrypto;
+}
+if (!global.webcrypto) {
+  global.webcrypto = nodeCrypto.webcrypto;
+}
+if (!globalThis.webcrypto) {
+  globalThis.webcrypto = nodeCrypto.webcrypto;
+}
+
 const pino = require("pino");
 const {
   default: makeWASocket,
@@ -80,6 +96,7 @@ async function startBot() {
 
       if (connection === "open") {
         reconnectAttempts = 0;
+        isStarting = false;
         console.log("✅ Lite-Ollver-MD connected successfully.");
         await sendOwnerConnectedMessage(sock, runtimeStart);
       }
@@ -118,7 +135,6 @@ async function startBot() {
       }
     });
 
-    isStarting = false;
     return sock;
   } catch (error) {
     isStarting = false;
