@@ -14,7 +14,7 @@ const {
 const pino = require("pino");
 const fs = require("fs");
 const path = require("path");
-const { handleMessages } = require("./handler");
+const { handleMessages, sendStartupMessage } = require("./handler");
 const config = require("../../config");
 
 let isConnecting = false;
@@ -60,7 +60,6 @@ async function writeSessionFromEnv(sessionDir) {
     throw new Error("Decoded SESSION_ID is invalid");
   }
 
-  // Format 1: { creds: {...}, keys: {...} }
   if (parsed.creds) {
     fs.writeFileSync(
       path.join(sessionDir, "creds.json"),
@@ -80,7 +79,6 @@ async function writeSessionFromEnv(sessionDir) {
     return true;
   }
 
-  // Format 2: raw creds only
   fs.writeFileSync(
     path.join(sessionDir, "creds.json"),
     JSON.stringify(parsed, null, 2)
@@ -158,6 +156,9 @@ async function connect() {
         console.log(`🤖 Bot: ${config.BOT_NAME}`);
         console.log(`🔣 Prefix: ${config.PREFIX}`);
         console.log("📱 Logged in successfully!");
+        
+        // Send startup message to owner
+        sendStartupMessage(sock);
       }
 
       if (connection === "close") {
@@ -200,8 +201,6 @@ async function connect() {
 
         const msg = messages?.[0];
         if (!msg?.message) return;
-
-        console.log("📩 Incoming message event received");
 
         await handleMessages(sock, msg);
       } catch (error) {
