@@ -1,7 +1,5 @@
 const config = require("../../config");
-const { buildMenu, sendMenuWithLogo } = require("../commands/menu");
-const fs = require("fs");
-const path = require("path");
+const { sendMenuWithLogo } = require("../commands/menu");
 
 // Import all command modules
 const otherCmd = require("../commands/other");
@@ -21,10 +19,27 @@ const toolsCmd = require("../commands/tools");
 const translateCmd = require("../commands/translate");
 const videoCmd = require("../commands/video");
 
+function normalizeNumber(num = "") {
+  return String(num).replace(/\D/g, "");
+}
+
+function extractText(msg) {
+  return (
+    msg.message?.conversation ||
+    msg.message?.extendedTextMessage?.text ||
+    msg.message?.imageMessage?.caption ||
+    msg.message?.videoMessage?.caption ||
+    msg.message?.buttonsResponseMessage?.selectedButtonId ||
+    msg.message?.listResponseMessage?.singleSelectReply?.selectedRowId ||
+    msg.message?.templateButtonReplyMessage?.selectedId ||
+    ""
+  ).trim();
+}
+
 async function sendStartupMessage(sock) {
   try {
-    const ownerJid = config.OWNER_NUMBER + "@s.whatsapp.net";
-    
+    const ownerJid = `${normalizeNumber(config.OWNER_NUMBER)}@s.whatsapp.net`;
+
     const startupMessage = `╔══════════════════════════════════╗
 ║   ✅ BOT CONNECTED SUCCESSFULLY  ║
 ╚══════════════════════════════════╝
@@ -37,8 +52,8 @@ async function sendStartupMessage(sock) {
 📦 *Commands:* 126+
 
 ╔══════════════════════════════════╗
-║   📥 Bot is active in your inbox  ║
-║   Type .menu to see all commands  ║
+║   📥 Bot is active in your inbox ║
+║   Type .menu to see all commands ║
 ╚══════════════════════════════════╝`;
 
     await sock.sendMessage(ownerJid, { text: startupMessage });
@@ -53,47 +68,51 @@ async function handleMessages(sock, msg) {
     const from = msg.key.remoteJid;
     const sender = msg.key.participant || from;
     const isGroup = from.endsWith("@g.us");
-    const senderNumber = sender.split("@")[0];
-    const isOwner = senderNumber === config.OWNER_NUMBER;
-    
-    const text = msg.message.conversation || 
-                 msg.message.extendedTextMessage?.text || 
-                 msg.message.imageMessage?.caption || 
-                 "";
-    
-    if (!text) return;
-    
-    // Log all incoming messages
-    console.log(`📨 [${new Date().toLocaleTimeString()}] From: ${senderNumber}${isGroup ? ' (group)' : ' (inbox)'} - ${text.substring(0, 30)}${text.length > 30 ? '...' : ''}`);
-    
-    // Check if it's a command
-    if (!text.startsWith(config.PREFIX)) return;
-    
-    const args = text.slice(config.PREFIX.length).trim().split(/ +/);
-    const command = args.shift()?.toLowerCase();
-    const fullArgs = args.join(" ");
-    
-    console.log(`⚡ Command: .${command} from ${senderNumber}${isGroup ? ' (group)' : ' (inbox)'}`);
-    
-    // Check mode
-    if (config.MODE === "private" && !isOwner && !isGroup) {
-      await sock.sendMessage(from, { 
-        text: "🔒 Bot is in *private mode*. Only owner can use commands." 
-      });
+    const senderNumber = normalizeNumber(sender.split("@")[0]);
+    const ownerNumber = normalizeNumber(config.OWNER_NUMBER);
+    const isOwner = senderNumber === ownerNumber || msg.key.fromMe === true;
+
+    const text = extractText(msg);
+
+    if (!text) {
+      console.log(`⚠️ Empty/unreadable message from ${senderNumber}`);
       return;
     }
-    
+
+    console.log(
+      `📨 [${new Date().toLocaleTimeString()}] From: ${senderNumber}${isGroup ? " (group)" : " (inbox)"} | fromMe=${msg.key.fromMe} | text=${text}`
+    );
+
+    // Check if it's a command
+    if (!text.startsWith(config.PREFIX)) return;
+
+    const args = text.slice(config.PREFIX.length).trim().split(/\s+/);
+    const command = args.shift()?.toLowerCase();
+    const fullArgs = args.join(" ");
+
+    console.log(`⚡ Command detected: ${config.PREFIX}${command} from ${senderNumber}${isGroup ? " (group)" : " (inbox)"}`);
+
+    // Mode check
+    // private mode = owner + groups allowed
+    if (config.MODE === "private" && !isOwner && !isGroup) {
+      await sock.sendMessage(
+        from,
+        { text: "🔒 Bot is in *private mode*. Only owner and groups can use commands." },
+        { quoted: msg }
+      );
+      return;
+    }
+
     let response = null;
-    
-    // Route commands
-    switch(command) {
+
+    switch (command) {
       // Menu command with logo
       case "menu":
       case "help":
       case "commands":
         await sendMenuWithLogo(sock, from, msg);
         return;
-      
+
       // Basic commands
       case "ping":
       case "alive":
@@ -104,9 +123,17 @@ async function handleMessages(sock, msg) {
       case "time":
       case "botstatus":
       case "speed":
-        response = await otherCmd.execute(command, { sock, from, senderNumber, isOwner, args, fullArgs, config });
+        response = await otherCmd.execute(command, {
+          sock,
+          from,
+          senderNumber,
+          isOwner,
+          args,
+          fullArgs,
+          config
+        });
         break;
-      
+
       // AI commands
       case "analyze":
       case "blackbox":
@@ -120,7 +147,7 @@ async function handleMessages(sock, msg) {
       case "teach":
         response = await aiCmd.execute(command, { args, fullArgs });
         break;
-      
+
       // Audio commands
       case "bass":
       case "deep":
@@ -131,7 +158,7 @@ async function handleMessages(sock, msg) {
       case "volaudio":
         response = await audioCmd.execute(command, { args, fullArgs });
         break;
-      
+
       // Download commands
       case "apk":
       case "facebook":
@@ -146,23 +173,23 @@ async function handleMessages(sock, msg) {
       case "video":
         response = await downloadCmd.execute(command, { args, fullArgs });
         break;
-      
+
       // Fun commands
       case "fact":
       case "jokes":
       case "memes":
       case "quotes":
       case "trivia":
-        response = await funCmd.execute(command);
+        response = await funCmd.execute(command, { args, fullArgs });
         break;
-      
+
       // Games commands
       case "dare":
       case "truth":
       case "truthordare":
-        response = await gamesCmd.execute(command);
+        response = await gamesCmd.execute(command, { args, fullArgs });
         break;
-      
+
       // Group commands
       case "add":
       case "antilink":
@@ -192,16 +219,23 @@ async function handleMessages(sock, msg) {
         if (!isGroup) {
           response = "❌ This command only works in groups!";
         } else {
-          response = await groupCmd.execute(command, { sock, from, msg, args, fullArgs, isOwner });
+          response = await groupCmd.execute(command, {
+            sock,
+            from,
+            msg,
+            args,
+            fullArgs,
+            isOwner
+          });
         }
         break;
-      
+
       // Image commands
       case "remini":
       case "wallpaper":
         response = await imageCmd.execute(command, { args, fullArgs });
         break;
-      
+
       // Owner commands
       case "addsudo":
       case "block":
@@ -221,13 +255,13 @@ async function handleMessages(sock, msg) {
           response = await ownerCmd.execute(command, { sock, from, args, fullArgs });
         }
         break;
-      
+
       // Religion commands
       case "bible":
       case "quran":
         response = await religionCmd.execute(command, { args, fullArgs });
         break;
-      
+
       // Search commands
       case "define":
       case "imdb":
@@ -237,7 +271,7 @@ async function handleMessages(sock, msg) {
       case "yts":
         response = await searchCmd.execute(command, { args, fullArgs });
         break;
-      
+
       // Settings commands
       case "autoreactstatus":
       case "autoreadstatus":
@@ -261,14 +295,14 @@ async function handleMessages(sock, msg) {
           response = await settingsCmd.execute(command, { args, fullArgs, config });
         }
         break;
-      
+
       // Support commands
       case "feedback":
       case "helpers":
       case "support":
-        response = await supportCmd.execute(command, { config });
+        response = await supportCmd.execute(command, { config, args, fullArgs });
         break;
-      
+
       // Tools commands
       case "calculate":
       case "fancy":
@@ -282,29 +316,33 @@ async function handleMessages(sock, msg) {
       case "tourl":
         response = await toolsCmd.execute(command, { sock, from, msg, args, fullArgs });
         break;
-      
+
       // Translate commands
       case "translate":
         response = await translateCmd.execute(command, { args, fullArgs });
         break;
-      
+
       // Video commands
       case "toaudio":
       case "toimage":
       case "tovideo":
         response = await videoCmd.execute(command, { args, fullArgs });
         break;
-      
+
       default:
         console.log(`❓ Unknown command: ${command}`);
+        await sock.sendMessage(
+          from,
+          { text: `❌ Unknown command: ${command}` },
+          { quoted: msg }
+        );
         return;
     }
-    
+
     if (response) {
       await sock.sendMessage(from, { text: response }, { quoted: msg });
       console.log(`✅ Response sent for: ${command}`);
     }
-    
   } catch (error) {
     console.error("❌ Handler error:", error);
   }
