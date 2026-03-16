@@ -1,8 +1,8 @@
 {
   "name": "Lite-Ollver-MD",
   "description": "WhatsApp Bot",
-  "repository": "https://github.com/OllverM/D",
-  "logo": "https://raw.githubusercontent.com/OllverM/D/main/assets/logo.png",
+  "repository": "https://github.com/RichieeTechsHub/Lite-Ollver-MD",
+  "logo": "https://raw.githubusercontent.com/RichieeTechsHub/Lite-Ollver-MD/main/assets/logo.png",
   "keywords": ["whatsapp", "bot", "baileys"],
   "env": {
     "BOT_NAME": {
@@ -11,7 +11,7 @@
       "required": true
     },
     "SESSION_ID": {
-      "description": "Your WhatsApp session ID from generator",
+      "description": "Your WhatsApp session ID",
       "required": true
     }
   },
@@ -19,5 +19,15 @@
     {
       "url": "heroku/nodejs"
     }
-  ]
+  ],
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "eco"
+    },
+    "worker": {
+      "quantity": 1,
+      "size": "eco"
+    }
+  }
 }
