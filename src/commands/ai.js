@@ -1,77 +1,66 @@
-const axios = require("axios");
-
 async function execute(command, { args, fullArgs }) {
-  if (!fullArgs) return `❌ Usage: .${command} <query>`;
   
-  try {
-    // Using free AI APIs
-    let result = "";
-    
-    switch (command) {
-      case "gpt":
-      case "ai":
-      case "chatgpt":
-        const gptResponse = await axios.get(`https://api.simsimi.vip/v1/simsimi?text=${encodeURIComponent(fullArgs)}&lang=en`);
-        result = gptResponse.data.response || "I couldn't process that.";
-        break;
-        
-      case "analyze":
-        result = `🔍 *Analysis*\n\nQuery: ${fullArgs}\n\nSentiment: Positive\nConfidence: 87%\nKeywords: ${fullArgs.split(" ").slice(0,3).join(", ")}...`;
-        break;
-        
-      case "blackbox":
-        result = `⬛ *Blackbox AI*\n\nThinking about: ${fullArgs}\n\nResponse: This is a simulated AI response. In production, this would connect to a real AI API.`;
-        break;
-        
-      case "code":
-        result = `💻 *Code Generator*\n\nLanguage: JavaScript\nQuery: ${fullArgs}\n\n\`\`\`javascript\n// Generated code\nfunction ${fullArgs.replace(/\s+/g, '')}() {\n  console.log("Hello from ${fullArgs}");\n  return "success";\n}\n\`\`\``;
-        break;
-        
-      case "generate":
-        result = `✨ *Generate*\n\nGenerating: ${fullArgs}\n\n✅ Generated successfully!\n\nOutput: Sample generated content based on your request.`;
-        break;
-        
-      case "programming":
-        result = `👨‍💻 *Programming Help*\n\nQuestion: ${fullArgs}\n\nAnswer: Here's how you can solve this programming problem...\n\n\`\`\`javascript\n// Solution\nconst solution = () => {\n  // Your code here\n  return "success";\n}\n\`\`\``;
-        break;
-        
-      case "recipe":
-        const recipes = {
-          "pasta": "🍝 *Pasta Recipe*\n\nIngredients:\n- Pasta 200g\n- Olive oil\n- Garlic\n- Tomatoes\n- Basil\n\nInstructions: Boil pasta, sauté garlic, add tomatoes, mix with pasta, garnish with basil.",
-          "chicken": "🍗 *Chicken Recipe*\n\nIngredients:\n- Chicken 500g\n- Spices\n- Onions\n- Garlic\n- Ginger\n\nInstructions: Marinate chicken, fry onions, add chicken, cook until done.",
-          "default": `🍳 *Recipe for ${fullArgs}*\n\nIngredients:\n- Main ingredient\n- Spices\n- Oil\n- Vegetables\n\nInstructions: Cook with love and enjoy!`
-        };
-        
-        const recipeKey = fullArgs.toLowerCase();
-        result = recipes[recipeKey] || recipes.default;
-        break;
-        
-      case "story":
-        const stories = [
-          "Once upon a time, in a digital world, a WhatsApp bot named Lite-Ollver helped thousands of users daily...",
-          "In a small village, there lived a coder who created the most amazing bot ever seen...",
-          "The adventure began when a developer decided to make the ultimate WhatsApp bot..."
-        ];
-        result = `📖 *Story Generator*\n\n${stories[Math.floor(Math.random() * stories.length)]}\n\nTo be continued...`;
-        break;
-        
-      case "summarize":
-        result = `📝 *Summary*\n\nOriginal: ${fullArgs}\n\nSummary: ${fullArgs.split(" ").slice(0, 10).join(" ")}... (shortened version)`;
-        break;
-        
-      case "teach":
-        result = `📚 *Teach Me*\n\nTopic: ${fullArgs}\n\nLesson: ${fullArgs} is a fascinating subject. Here are the key points:\n1. First important concept\n2. Second important concept\n3. Third important concept`;
-        break;
-        
-      default:
-        result = `AI response for ${command}: ${fullArgs}`;
-    }
-    
-    return result;
-  } catch (error) {
-    console.error("AI Error:", error);
-    return `⚠️ Error processing request. Please try again.`;
+  if (!fullArgs) {
+    return `❌ Please provide a query.\nExample: .${command} What is JavaScript?`;
   }
+  
+  const responses = {
+    
+    analyze: `🔍 *ANALYSIS RESULT*\n\n` +
+             `Query: "${fullArgs}"\n\n` +
+             `Sentiment: Positive 😊\n` +
+             `Confidence: 87%\n` +
+             `Word Count: ${fullArgs.split(' ').length}`,
+    
+    gpt: `🤖 *GPT RESPONSE*\n\n` +
+         `You asked: "${fullArgs}"\n\n` +
+         `I understand you're asking about "${fullArgs}". This is a simulated AI response. In production, this would connect to OpenAI API.`,
+    
+    code: `💻 *CODE GENERATOR*\n\n` +
+          `Language: JavaScript\n` +
+          `Request: ${fullArgs}\n\n` +
+          `\`\`\`javascript\n` +
+          `// Generated code for: ${fullArgs}\n` +
+          `function solution() {\n` +
+          `  return "Code generated successfully!";\n` +
+          `}\n` +
+          `\`\`\``,
+    
+    recipe: `🍳 *RECIPE GENERATOR*\n\n` +
+            `Dish: ${fullArgs}\n\n` +
+            `*Ingredients:*\n` +
+            `• 2 cups ${fullArgs}\n` +
+            `• 1 tbsp oil\n` +
+            `• Salt to taste\n\n` +
+            `*Instructions:*\n` +
+            `1. Prepare ingredients\n` +
+            `2. Cook for 10 minutes\n` +
+            `3. Serve hot! 😋`,
+    
+    story: `📖 *STORY GENERATOR*\n\n` +
+           `Once upon a time, there was a magical ${fullArgs}...\n\n` +
+           `The ${fullArgs} went on an incredible journey.`,
+    
+    summarize: `📝 *SUMMARIZER*\n\n` +
+               `Original: "${fullArgs}"\n\n` +
+               `Summary: ${fullArgs.substring(0, 50)}...`,
+    
+    teach: `📚 *LEARNING MODULE*\n\n` +
+           `Topic: ${fullArgs}\n\n` +
+           `*Key Concepts:*\n` +
+           `1. ${fullArgs} basics\n` +
+           `2. Advanced topics\n` +
+           `3. Practical applications`,
+    
+    programming: `👨‍💻 *PROGRAMMING HELP*\n\n` +
+                 `Question: ${fullArgs}\n\n` +
+                 `*Solution Approach:*\n` +
+                 `1. Understand the problem\n` +
+                 `2. Break it down\n` +
+                 `3. Implement solution`
+  };
+  
+  return responses[command] || `✅ Processing: ${fullArgs}`;
 }
 
 module.exports = { execute };
