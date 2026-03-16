@@ -1,15 +1,20 @@
+const { getSettings, formatBool } = require("../../utils/settings");
+
 module.exports = {
   name: "statussettings",
-  description: "Show status automation settings",
+  alias: [],
+  description: "Show status-related settings",
 
-  async execute({ reply, settings }) {
+  async execute({ reply }) {
+    const s = await getSettings();
+
     const text = [
-      "📡 *Status Settings*",
-      "",
-      `*Autoread Status:* ${settings.autoreadstatus}`,
-      `*Autoreact Status:* ${settings.autoreactstatus}`,
-      `*Status Emoji:* ${settings.statusEmoji}`,
-      `*Status Delay:* ${settings.statusDelay}`
+      "┏▣ ◈ *STATUS SETTINGS* ◈",
+      `┃ AutoReadStatus: ${formatBool(s.autoreadstatus)}`,
+      `┃ AutoReactStatus: ${formatBool(s.autoreactstatus)}`,
+      `┃ Status Emoji: ${s.statusEmoji}`,
+      `┃ Status Delay: ${s.statusDelay}s`,
+      "┗▣"
     ].join("\n");
 
     await reply(text);

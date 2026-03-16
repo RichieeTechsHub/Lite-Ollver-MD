@@ -1,24 +1,19 @@
-const { isOwner } = require("../../bot/permissions");
-const { saveSettings } = require("../../bot/handler");
+const { updateSetting, parseToggle, formatBool, getSettings } = require("../../utils/settings");
 
 module.exports = {
   name: "autotyping",
-  description: "Toggle autotyping",
+  alias: [],
+  description: "Toggle autotyping on or off",
 
-  async execute({ reply, senderJid, args, settings }) {
-    if (!isOwner(senderJid)) {
-      return reply("❌ Only the owner can change this setting.");
+  async execute({ args, reply }) {
+    const value = parseToggle(args[0] || "");
+
+    if (value === null) {
+      const s = await getSettings();
+      return reply(`Usage: .autotyping on/off\nCurrent: ${formatBool(s.autotyping)}`);
     }
 
-    const value = (args[0] || "").toLowerCase();
-
-    if (!["on", "off"].includes(value)) {
-      return reply(`⚠️ Usage: ${settings.prefix}autotyping on/off`);
-    }
-
-    settings.autotyping = value === "on";
-    await saveSettings(settings);
-
-    await reply(`✅ autotyping is now ${value.toUpperCase()}.`);
+    await updateSetting("autotyping", value);
+    await reply(`✅ AutoTyping is now ${formatBool(value)}`);
   }
 };

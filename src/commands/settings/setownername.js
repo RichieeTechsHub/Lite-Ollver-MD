@@ -1,24 +1,18 @@
-const { isOwner } = require("../../bot/permissions");
-const { saveSettings } = require("../../bot/handler");
+const { updateSetting } = require("../../utils/settings");
 
 module.exports = {
   name: "setownername",
+  alias: [],
   description: "Set owner name",
 
-  async execute({ reply, senderJid, text, settings }) {
-    if (!isOwner(senderJid)) {
-      return reply("❌ Only the owner can change owner name.");
-    }
-
-    const value = text.trim();
+  async execute({ args, reply }) {
+    const value = args.join(" ").trim();
 
     if (!value) {
-      return reply("⚠️ Usage: .setownername YourName");
+      return reply("Usage: .setownername RichiieeTheeGoat");
     }
 
-    settings.ownerName = value;
-    await saveSettings(settings);
-
-    await reply(`✅ Owner name updated to: ${settings.ownerName}`);
+    await updateSetting("ownerName", value);
+    await reply(`✅ Owner name updated to: ${value}`);
   }
 };

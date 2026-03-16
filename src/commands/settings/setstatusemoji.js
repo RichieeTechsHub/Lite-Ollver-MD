@@ -1,24 +1,18 @@
-const { isOwner } = require("../../bot/permissions");
-const { saveSettings } = require("../../bot/handler");
+const { updateSetting } = require("../../utils/settings");
 
 module.exports = {
   name: "setstatusemoji",
-  description: "Set status reaction emoji",
+  alias: [],
+  description: "Set emoji used for status reactions",
 
-  async execute({ reply, senderJid, text, settings }) {
-    if (!isOwner(senderJid)) {
-      return reply("❌ Only the owner can change status emoji.");
-    }
-
-    const value = text.trim();
+  async execute({ args, reply }) {
+    const value = args.join(" ").trim();
 
     if (!value) {
-      return reply("⚠️ Usage: .setstatusemoji ❤️");
+      return reply("Usage: .setstatusemoji ✅");
     }
 
-    settings.statusEmoji = value;
-    await saveSettings(settings);
-
-    await reply(`✅ Status emoji updated to: ${settings.statusEmoji}`);
+    await updateSetting("statusEmoji", value);
+    await reply(`✅ Status emoji updated to: ${value}`);
   }
 };

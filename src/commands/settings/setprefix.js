@@ -1,24 +1,22 @@
-const { isOwner } = require("../../bot/permissions");
-const { saveSettings } = require("../../bot/handler");
+const { updateSetting } = require("../../utils/settings");
 
 module.exports = {
   name: "setprefix",
+  alias: [],
   description: "Set bot prefix",
 
-  async execute({ reply, senderJid, text, settings }) {
-    if (!isOwner(senderJid)) {
-      return reply("❌ Only the owner can change prefix.");
+  async execute({ args, reply }) {
+    const value = (args[0] || "").trim();
+
+    if (!value) {
+      return reply("Usage: .setprefix !");
     }
 
-    const newPrefix = text.trim();
-
-    if (!newPrefix) {
-      return reply("⚠️ Usage: .setprefix !");
+    if (value.length > 3) {
+      return reply("❌ Prefix should be short. Example: ., !, #");
     }
 
-    settings.prefix = newPrefix;
-    await saveSettings(settings);
-
-    await reply(`✅ Prefix changed successfully.\n\nNew Prefix: ${newPrefix}`);
+    await updateSetting("prefix", value);
+    await reply(`✅ Prefix updated to: ${value}`);
   }
 };

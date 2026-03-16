@@ -1,24 +1,18 @@
-const { isOwner } = require("../../bot/permissions");
-const { saveSettings } = require("../../bot/handler");
+const { updateSetting } = require("../../utils/settings");
 
 module.exports = {
   name: "statusdelay",
-  description: "Set status delay",
+  alias: [],
+  description: "Set status delay in seconds",
 
-  async execute({ reply, senderJid, args, settings }) {
-    if (!isOwner(senderJid)) {
-      return reply("❌ Only the owner can change status delay.");
+  async execute({ args, reply }) {
+    const value = Number(args[0]);
+
+    if (!value || Number.isNaN(value) || value < 1) {
+      return reply("Usage: .statusdelay 5");
     }
 
-    const delay = Number(args[0]);
-
-    if (Number.isNaN(delay) || delay < 0) {
-      return reply("⚠️ Usage: .statusdelay 10");
-    }
-
-    settings.statusDelay = delay;
-    await saveSettings(settings);
-
-    await reply(`✅ Status delay updated to: ${delay} second(s)`);
+    await updateSetting("statusDelay", value);
+    await reply(`✅ Status delay updated to: ${value} seconds`);
   }
 };
