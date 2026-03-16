@@ -1,6 +1,13 @@
 const { startBot } = require("./src/bot/connect");
 
-startBot().catch((error) => {
-  console.error("Fatal startup error:", error);
-  process.exit(1);
-});
+async function bootstrap() {
+  try {
+    console.log("🚀 Starting Lite-Ollver-MD...");
+    await startBot();
+  } catch (error) {
+    console.error("❌ Fatal startup error:", error.message);
+    process.exit(1);
+  }
+}
+
+bootstrap();
