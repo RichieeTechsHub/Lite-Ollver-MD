@@ -30,16 +30,16 @@ function buildMenu() {
   const speed = getSpeed();
   const uptime = getUptime();
   
-  const totalCommands = 126;
+  const totalCommands = 126; // Your total commands count
   
-  // Logo Card
+  // ASCII Logo Card
   const logoCard = `
 ╔══════════════════════════════════╗
 ║     ⚡ LITE-OLLVER-MD ⚡         ║
 ║   WhatsApp Multi-Device Bot      ║
 ╚══════════════════════════════════╝`;
 
-  // Info Card
+  // Main Info Card
   const infoCard = `
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃           BOT INFO              ┃
@@ -56,7 +56,7 @@ function buildMenu() {
 ┃ 📱 Number   : ${config.OWNER_NUMBER}
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛`;
 
-  // Commands Card
+  // Commands by Category
   const commandsCard = `
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃        COMMAND CATEGORIES       ┃
