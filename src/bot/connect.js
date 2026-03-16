@@ -1,75 +1,88 @@
-const {
-  default: makeWASocket,
-  useMultiFileAuthState,
-  fetchLatestBaileysVersion
-} = require("@whiskeysockets/baileys");
-const pino = require("pino");
+const fs = require("fs-extra");
+const path = require("path");
 
-async function startBot() {
-  const { state, saveCreds } = await useMultiFileAuthState("./session");
-  const { version } = await fetchLatestBaileysVersion();
+const SESSION_DIR = path.join(process.cwd(), "session");
 
-  const sock = makeWASocket({
-    version,
-    auth: state,
-    logger: pino({ level: "silent" }),
-    printQRInTerminal: false,
-    markOnlineOnConnect: true,
-    syncFullHistory: false
-  });
-
-  sock.ev.on("creds.update", saveCreds);
-
-  sock.ev.on("connection.update", ({ connection }) => {
-    if (connection === "connecting") {
-      console.log("🔄 Connecting...");
-    }
-
-    if (connection === "open") {
-      console.log("✅ Connected successfully");
-    }
-
-    if (connection === "close") {
-      console.log("❌ Connection closed");
-    }
-  });
-
-  sock.ev.on("messages.upsert", async ({ messages, type }) => {
-    try {
-      console.log("📨 messages.upsert type:", type);
-
-      const msg = messages?.[0];
-      if (!msg) return;
-
-      console.log("📩 Full incoming message:", JSON.stringify(msg, null, 2));
-
-      const text =
-        msg.message?.conversation ||
-        msg.message?.extendedTextMessage?.text ||
-        msg.message?.imageMessage?.caption ||
-        msg.message?.videoMessage?.caption ||
-        "";
-
-      if (!text) return;
-
-      const from = msg.key.remoteJid;
-      console.log("✅ Incoming text:", text);
-
-      if (text === ".ping") {
-        await sock.sendMessage(from, { text: "🏓 Pong!" }, { quoted: msg });
-      }
-
-      if (text === ".menu") {
-        await sock.sendMessage(
-          from,
-          { text: "🔥 Lite-Ollver-MD working.\n\nCommands:\n.ping\n.menu" },
-          { quoted: msg }
-        );
-      }
-    } catch (err) {
-      console.error("❌ Message handler error:", err.message);
-    }
-  });
+async function ensureSessionDir() {
+  await fs.ensureDir(SESSION_DIR);
 }
 
-module.exports = startBot;
+function getSessionId() {
+  return (process.env.SESSION_ID || "").trim();
+}
+
+function hasSessionId() {
+  return getSessionId().length > 0;
+}
+
+async function sessionFilesExist() {
+  const credsFile = path.join(SESSION_DIR, "creds.json");
+  return await fs.pathExists(credsFile);
+}
+
+function stripKnownPrefixes(sessionId = "") {
+  return sessionId
+    .replace(/^LITE-OLLVER-MD[:~]/i, "")
+    .replace(/^LITE-OLIVER-MD[:~]/i, "")
+    .replace(/^ELITE-OLLVER-MD[:~]/i, "")
+    .trim();
+}
+
+async function decodeSession() {
+  const raw = getSessionId();
+
+  if (!raw) {
+    throw new Error("SESSION_ID is missing.");
+  }
+
+  await ensureSessionDir();
+
+  const cleaned = stripKnownPrefixes(raw);
+
+  let decodedText;
+  try {
+    decodedText = Buffer.from(cleaned, "base64").toString("utf-8");
+  } catch (error) {
+    throw new Error("Failed to decode SESSION_ID from base64.");
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(decodedText);
+  } catch (error) {
+    throw new Error("Decoded SESSION_ID is not valid JSON.");
+  }
+
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error("Decoded session data is invalid.");
+  }
+
+  if (parsed.creds) {
+    await fs.writeJson(path.join(SESSION_DIR, "creds.json"), parsed.creds, {
+      spaces: 2
+    });
+
+    if (parsed.keys && typeof parsed.keys === "object") {
+      for (const [keyName, value] of Object.entries(parsed.keys)) {
+        await fs.writeJson(path.join(SESSION_DIR, `${keyName}.json`), value, {
+          spaces: 2
+        });
+      }
+    }
+  } else {
+    await fs.writeJson(path.join(SESSION_DIR, "creds.json"), parsed, {
+      spaces: 2
+    });
+  }
+
+  return true;
+}
+
+module.exports = {
+  SESSION_DIR,
+  ensureSessionDir,
+  getSessionId,
+  hasSessionId,
+  sessionFilesExist,
+  decodeSession
+};
