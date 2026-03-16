@@ -132,10 +132,9 @@ async function sendMenu(sock, jid, quoted) {
   if (fs.existsSync(logoPath)) {
     const imageBuffer = fs.readFileSync(logoPath);
     await sock.sendMessage(jid, { image: imageBuffer, caption: menuText }, quoted ? { quoted } : {});
-    return;
+  } else {
+    await reply(sock, jid, menuText, quoted);
   }
-
-  await reply(sock, jid, menuText, quoted);
 }
 
 async function handleCommand(sock, msg) {
@@ -143,19 +142,17 @@ async function handleCommand(sock, msg) {
     if (!msg?.message) return;
 
     const body = extractText(msg.message);
+    const from = msg.key.remoteJid;
+
+    console.log(`📩 Raw incoming text: "${body}" | from=${from} | fromMe=${msg.key.fromMe}`);
+
     if (!body) return;
 
-    const from = msg.key.remoteJid;
     const prefix = process.env.PREFIX || ".";
-
-    console.log(`📩 Incoming command candidate: "${body}" from ${from}`);
-
     if (!body.startsWith(prefix)) return;
 
     const parts = body.slice(prefix.length).trim().split(/\s+/);
     const command = (parts.shift() || "").toLowerCase();
-
-    if (!command) return;
 
     console.log(`✅ Command detected: ${command}`);
 
@@ -265,9 +262,10 @@ async function startBot() {
 
     sock.ev.on("creds.update", saveCreds);
 
-    sock.ev.on("messages.upsert", async ({ messages }) => {
+    sock.ev.on("messages.upsert", async (event) => {
       try {
-        const msg = messages?.[0];
+        console.log(`📨 messages.upsert received | type=${event?.type || "unknown"} | count=${event?.messages?.length || 0}`);
+        const msg = event?.messages?.[0];
         if (!msg || !msg.message) return;
         await handleCommand(sock, msg);
       } catch (error) {
