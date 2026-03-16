@@ -1,8 +1,7 @@
 const fs = require("fs-extra");
 const path = require("path");
-const config = require("../../config");
 
-const SESSION_DIR = path.join(__dirname, "..", "session");
+const SESSION_DIR = path.join(process.cwd(), "session");
 
 async function ensureSessionDir() {
   await fs.ensureDir(SESSION_DIR);
@@ -16,41 +15,35 @@ function hasSessionId() {
   return getSessionId().length > 0;
 }
 
-function isValidSessionId(sessionId = "") {
-  return sessionId.startsWith(config.SESSION_PREFIX);
-}
-
-function stripSessionPrefix(sessionId = "") {
-  return sessionId.replace(config.SESSION_PREFIX, "").trim();
-}
-
 async function sessionFilesExist() {
   const credsFile = path.join(SESSION_DIR, "creds.json");
-  return fs.pathExists(credsFile);
+  return await fs.pathExists(credsFile);
+}
+
+function stripKnownPrefixes(sessionId = "") {
+  return sessionId
+    .replace(/^LITE-OLLVER-MD[:~]/i, "")
+    .replace(/^LITE-OLIVER-MD[:~]/i, "")
+    .replace(/^ELITE-OLLVER-MD[:~]/i, "")
+    .trim();
 }
 
 async function decodeSession() {
-  const sessionId = getSessionId();
+  const raw = getSessionId();
 
-  if (!sessionId) {
+  if (!raw) {
     throw new Error("SESSION_ID is missing.");
-  }
-
-  if (!isValidSessionId(sessionId)) {
-    throw new Error(
-      `Invalid SESSION_ID format. It must start with "${config.SESSION_PREFIX}"`
-    );
   }
 
   await ensureSessionDir();
 
-  const encoded = stripSessionPrefix(sessionId);
+  const cleaned = stripKnownPrefixes(raw);
 
   let decodedText;
   try {
-    decodedText = Buffer.from(encoded, "base64").toString("utf-8");
+    decodedText = Buffer.from(cleaned, "base64").toString("utf-8");
   } catch (error) {
-    throw new Error("Failed to decode SESSION_ID from Base64.");
+    throw new Error("Failed to decode SESSION_ID from base64.");
   }
 
   let parsed;
@@ -61,7 +54,7 @@ async function decodeSession() {
   }
 
   if (!parsed || typeof parsed !== "object") {
-    throw new Error("Decoded session data is empty or invalid.");
+    throw new Error("Decoded session data is invalid.");
   }
 
   if (parsed.creds) {
@@ -90,8 +83,6 @@ module.exports = {
   ensureSessionDir,
   getSessionId,
   hasSessionId,
-  isValidSessionId,
-  stripSessionPrefix,
   sessionFilesExist,
   decodeSession
 };
