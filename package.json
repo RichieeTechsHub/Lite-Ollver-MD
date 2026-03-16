@@ -1,20 +1,16 @@
 {
   "name": "lite-ollver-md",
   "version": "1.0.0",
-  "description": "Lite-Ollver-MD WhatsApp Multi Device Bot built with Baileys",
   "main": "index.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node index.js"
+    "start": "node web.js"
   },
-  "author": "RichiieeTheeGoat",
-  "license": "MIT",
   "dependencies": {
     "@whiskeysockets/baileys": "^6.7.5",
     "express": "^4.19.2",
     "fs-extra": "^11.2.0",
-    "pino": "^8.19.0",
-    "qrcode-terminal": "^0.12.0"
+    "pino": "^8.19.0"
   },
   "engines": {
     "node": "18.x"
