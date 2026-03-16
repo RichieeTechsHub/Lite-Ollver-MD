@@ -16,6 +16,16 @@
       "required": true
     }
   },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    },
+    "worker": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  },
   "buildpacks": [
     {
       "url": "heroku/nodejs"
