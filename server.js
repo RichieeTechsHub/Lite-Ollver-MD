@@ -1,8 +1,9 @@
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
+const connect = require("./src/system/connect");
 
-let config = { 
+let config = {
   BOT_NAME: "Lite-Ollver-MD",
   OWNER_NAME: "RichieeTheeGoat",
   OWNER_NUMBER: "254740479599",
@@ -75,22 +76,37 @@ app.get("/", (req, res) => {
 });
 
 app.get("/health", (req, res) => {
-  res.json({ 
-    status: "ok", 
+  res.json({
+    status: "ok",
     bot: config.BOT_NAME,
     time: new Date().toISOString()
   });
 });
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
   console.log(`🌐 Web server running on port ${PORT}`);
+
+  try {
+    await connect();
+    console.log("🤖 WhatsApp bot started successfully");
+  } catch (error) {
+    console.error("❌ Failed to start WhatsApp bot:", error);
+  }
 });
 
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
+process.on("SIGTERM", () => {
+  console.log("SIGTERM received, shutting down gracefully");
   server.close(() => {
-    console.log('Server closed');
+    console.log("Server closed");
   });
+});
+
+process.on("uncaughtException", (error) => {
+  console.error("❌ Uncaught Exception:", error);
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("❌ Unhandled Rejection:", reason);
 });
 
 module.exports = { startServer: () => server };
