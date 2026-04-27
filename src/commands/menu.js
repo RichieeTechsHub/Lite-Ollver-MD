@@ -70,12 +70,13 @@ function countCommands() {
   return Object.values(MENU_CATEGORIES).flat().length;
 }
 
-function buildCategory(title, cmds, prefix) {
+// ✅ FIXED (NO PREFIX IN COMMAND LIST)
+function buildCategory(title, cmds) {
   const line = "━━━━━━━━━━━━";
   let text = `╭─❍ ${title}\n`;
 
   cmds.forEach((c) => {
-    text += `│◦ ${prefix}${c}\n`;
+    text += `│◦ ${c}\n`;
   });
 
   text += `╰${line}`;
@@ -102,7 +103,7 @@ function buildMenu(ctx) {
 ╰${line}`;
 
   const body = Object.entries(MENU_CATEGORIES)
-    .map(([t, c]) => buildCategory(t, c, prefix))
+    .map(([t, c]) => buildCategory(t, c))
     .join("\n\n");
 
   return `${header}
