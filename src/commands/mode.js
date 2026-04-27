@@ -1,24 +1,24 @@
-const { setSetting, readSettings } = require("../lib/botSettings");
+﻿const { setSetting, readSettings } = require("../lib/botSettings");
 
 async function execute(sock, msg, args) {
-  const option = (args[0] || "").toLowerCase();
+  const value = (args[0] || "").toLowerCase();
 
-  if (!["on", "off"].includes(option)) {
+  if (!["public", "private"].includes(value)) {
     const settings = await readSettings();
     return sock.sendMessage(msg.key.remoteJid, {
-      text: "⚙️ *mode*\n\nUsage: .mode on/off\nCurrent: " + (settings["mode"] ? "ON" : "OFF")
+      text: "🔐 *MODE SETTINGS*\n\nCurrent: " + (settings.mode || "public") + "\n\nUsage:\n.mode public\n.mode private"
     });
   }
 
-  await setSetting("mode", option === "on");
+  await setSetting("mode", value);
 
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *mode* turned " + option.toUpperCase()
+    text: "✅ Bot mode changed to *" + value + "*"
   });
 }
 
 module.exports = {
   name: "mode",
-  description: "mode toggle command",
+  description: "Set bot mode",
   execute
 };

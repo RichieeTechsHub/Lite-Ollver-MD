@@ -1,23 +1,29 @@
-const { setSetting } = require("../lib/botSettings");
+﻿const { setSetting } = require("../lib/botSettings");
 
 async function execute(sock, msg, args) {
-  const value = args.join(" ");
+  const prefix = args[0];
 
-  if (!value) {
+  if (!prefix) {
     return sock.sendMessage(msg.key.remoteJid, {
-      text: "❌ Usage: .setprefix value"
+      text: "❌ Usage: .setprefix !"
     });
   }
 
-  await setSetting("setprefix", value);
+  if (prefix.length > 3) {
+    return sock.sendMessage(msg.key.remoteJid, {
+      text: "❌ Prefix too long. Use 1-3 characters."
+    });
+  }
+
+  await setSetting("prefix", prefix);
 
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *setprefix* updated to:\n" + value
+    text: "✅ Prefix changed to: " + prefix + "\n\nNow use: " + prefix + "menu"
   });
 }
 
 module.exports = {
   name: "setprefix",
-  description: "setprefix setting",
+  description: "Change bot prefix",
   execute
 };
