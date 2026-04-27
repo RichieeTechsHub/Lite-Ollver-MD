@@ -1,1 +1,2 @@
-﻿module.exports = require("./song");
+﻿
+module.exports = require("./song");
