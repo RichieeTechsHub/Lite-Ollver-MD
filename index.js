@@ -1,7 +1,7 @@
 const connect = require("./src/core/connect");
 
 console.log("╔══════════════════════════════════╗");
-console.log("║     🚀 LITE-OLLVER-MD WORKER    ║");
+console.log("║     🚀 LITE-OLLVER-MD BOT       ║");
 console.log("║     Starting WhatsApp Bot...    ║");
 console.log("╚══════════════════════════════════╝");
 
@@ -16,7 +16,7 @@ process.on('unhandledRejection', (err) => {
 connect().catch(error => {
   console.error("❌ Fatal error:", error);
   setTimeout(() => {
-    console.log("🔄 Restarting...");
+    console.log("🔄 Restarting in 5 seconds...");
     process.exit(1);
   }, 5000);
 });
