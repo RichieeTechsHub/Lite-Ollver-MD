@@ -1,3 +1,5 @@
+﻿const axios = require("axios");
+
 async function execute(sock, msg, args) {
   const query = args.join(" ");
 
@@ -7,12 +9,21 @@ async function execute(sock, msg, args) {
     });
   }
 
-  await sock.sendMessage(msg.key.remoteJid, {
-    text:
-      "☪️ *QURAN SEARCH*\n\n" +
-      "Ayah requested: " + query + "\n\n" +
-      "✅ Quran command is active. Quran API will be connected next."
-  });
+  try {
+    const [surah, ayah] = query.split(":");
+
+    const { data } = await axios.get(`https://api.alquran.cloud/v1/ayah/${surah}:${ayah}/en.asad`);
+
+    await sock.sendMessage(msg.key.remoteJid, {
+      text:
+        `☪️ *Quran ${surah}:${ayah}*\n\n` +
+        data.data.text
+    });
+  } catch {
+    await sock.sendMessage(msg.key.remoteJid, {
+      text: "❌ Quran verse not found. Example: .quran 1:1"
+    });
+  }
 }
 
 module.exports = {

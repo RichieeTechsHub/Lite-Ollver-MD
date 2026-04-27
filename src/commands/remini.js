@@ -1,4 +1,5 @@
-const { downloadMediaMessage } = require("@whiskeysockets/baileys");
+﻿const { downloadMediaMessage } = require("@whiskeysockets/baileys");
+const sharp = require("sharp");
 
 async function execute(sock, msg) {
   try {
@@ -27,19 +28,26 @@ async function execute(sock, msg) {
       { logger: console, reuploadRequest: sock.updateMediaMessage }
     );
 
+    const enhanced = await sharp(buffer)
+      .resize({ width: 1600, withoutEnlargement: false })
+      .sharpen()
+      .modulate({ brightness: 1.05, saturation: 1.1 })
+      .jpeg({ quality: 95 })
+      .toBuffer();
+
     await sock.sendMessage(msg.key.remoteJid, {
-      image: buffer,
-      caption: "✨ Image received. Remini enhancement API will be connected next."
+      image: enhanced,
+      caption: "✨ Image enhanced."
     });
-  } catch (err) {
+  } catch {
     await sock.sendMessage(msg.key.remoteJid, {
-      text: "❌ Remini failed. Reply to a valid image."
+      text: "❌ Remini enhancement failed."
     });
   }
 }
 
 module.exports = {
   name: "remini",
-  description: "Enhance replied image",
+  description: "Enhance image",
   execute
 };

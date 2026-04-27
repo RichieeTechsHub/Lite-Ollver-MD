@@ -1,4 +1,6 @@
-﻿async function execute(sock, msg, args) {
+﻿const axios = require("axios");
+
+async function execute(sock, msg, args) {
   const query = args.join(" ");
 
   if (!query) {
@@ -8,24 +10,23 @@
   }
 
   try {
-    const res = await fetch("https://bible-api.com/" + encodeURIComponent(query));
-    const data = await res.json();
+    const { data } = await axios.get("https://bible-api.com/" + encodeURIComponent(query));
 
     if (!data.text) {
       return sock.sendMessage(msg.key.remoteJid, {
-        text: "❌ Verse not found. Example: .bible John 3:16"
+        text: "❌ Verse not found."
       });
     }
 
     await sock.sendMessage(msg.key.remoteJid, {
       text:
-        "📖 *" + (data.reference || query) + "*\n\n" +
+        `📖 *${data.reference}*\n\n` +
         data.text.trim() +
-        "\n\n_" + (data.translation_name || "Bible") + "_"
+        `\n\n_${data.translation_name || "Bible"}_`
     });
-  } catch (err) {
+  } catch {
     await sock.sendMessage(msg.key.remoteJid, {
-      text: "❌ Bible lookup failed. Try again later."
+      text: "❌ Bible lookup failed."
     });
   }
 }

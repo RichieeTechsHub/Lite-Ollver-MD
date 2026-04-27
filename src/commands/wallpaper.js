@@ -1,4 +1,4 @@
-async function execute(sock, msg, args) {
+﻿async function execute(sock, msg, args) {
   const query = args.join(" ");
 
   if (!query) {
@@ -7,11 +7,11 @@ async function execute(sock, msg, args) {
     });
   }
 
+  const url = "https://source.unsplash.com/1080x1920/?" + encodeURIComponent(query);
+
   await sock.sendMessage(msg.key.remoteJid, {
-    text:
-      "🖼️ *Wallpaper Search*\n\n" +
-      "Query: " + query + "\n\n" +
-      "✅ Command is working. Wallpaper API will be connected next."
+    image: { url },
+    caption: "🖼️ Wallpaper for: " + query
   });
 }
 
