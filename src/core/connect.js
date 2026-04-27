@@ -321,7 +321,7 @@ async function connect() {
 
       const sender = getSenderNumber(msg);
 
-      if (mode === "private" && !isAllowedPrivateUser(sender, settings)) {
+      if (mode === "private" && !isAllowedPrivateUser(sender, settings, msg, sock)) {
         return sock.sendMessage(msg.key.remoteJid, {
           text: "🔒 Bot is currently in private mode.",
         });

@@ -4,19 +4,11 @@ function cleanNumber(value = "") {
   return String(value).replace(/\D/g, "");
 }
 
-function getSender(msg) {
-  return cleanNumber(msg.key.participant || msg.key.remoteJid || "");
-}
-
-function getBotNumber(sock) {
-  return cleanNumber(sock.user?.id || "");
-}
-
 async function execute(sock, msg, args, ctx) {
   const settings = await readSettings();
 
-  const sender = getSender(msg);
-  const botNumber = getBotNumber(sock);
+  const sender = cleanNumber(msg.key.participant || msg.key.remoteJid || "");
+  const botNumber = cleanNumber(sock.user?.id || "");
   const owner = cleanNumber(settings.ownerNumber || ctx.OWNER_NUMBER);
   const sudo = Array.isArray(settings.sudo) ? settings.sudo.map(cleanNumber) : [];
 
@@ -32,21 +24,21 @@ async function execute(sock, msg, args, ctx) {
     });
   }
 
-  const mode = (args[0] || "").toLowerCase();
+  const input = (args[0] || "").toLowerCase();
 
-  if (!["public", "private"].includes(mode)) {
+  if (!["public", "private"].includes(input)) {
     return sock.sendMessage(msg.key.remoteJid, {
-      text: "⚙️ Usage:\n\n.mode public\n.mode private",
+      text: "⚙️ Usage:\n.mode public\n.mode private",
     });
   }
 
-  settings.mode = mode;
+  settings.mode = input;
   await writeSettings(settings);
 
   await sock.sendMessage(msg.key.remoteJid, {
     text:
-      `✅ Mode changed to *${mode}*\n\n` +
-      (mode === "private"
+      `✅ Mode changed to *${input.toUpperCase()}*\n\n` +
+      (input === "private"
         ? "🔒 Only owner, bot host and sudo can use commands."
         : "🌍 Everyone can use commands."),
   });
@@ -54,6 +46,6 @@ async function execute(sock, msg, args, ctx) {
 
 module.exports = {
   name: "mode",
-  description: "Switch bot mode",
+  description: "Switch bot mode public/private",
   execute,
 };
