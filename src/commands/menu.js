@@ -32,7 +32,14 @@ function buildMenu() {
   const speed = getSpeed();
   const uptime = getUptime();
   
-  const totalCommands = 126;
+  // You can update totalCommands dynamically by counting command files
+  const commandsPath = path.join(__dirname, "../commands");
+  let totalCommands = 0;
+  try {
+    if (fs.existsSync(commandsPath)) {
+      totalCommands = fs.readdirSync(commandsPath).filter(f => f.endsWith(".js")).length;
+    }
+  } catch(e) { totalCommands = 126; }
   
   return `╔══════════════════════════════════╗
 ║     ⚡ LITE-OLLVER-MD ⚡         ║
@@ -57,24 +64,24 @@ function buildMenu() {
 ╔══════════════════════════════════╗
 ║         BASIC COMMANDS           ║
 ╠══════════════════════════════════╣
-║ ➤ .ping    - Check bot response  ║
-║ ➤ .alive   - Bot status          ║
-║ ➤ .menu    - Show this menu      ║
-║ ➤ .owner   - Owner info          ║
-║ ➤ .repo    - GitHub repository   ║
-║ ➤ .runtime - Bot uptime          ║
-║ ➤ .support - Support group       ║
-║ ➤ .time    - Current time        ║
+║ ➤ ${config.PREFIX}ping    - Check bot response  ║
+║ ➤ ${config.PREFIX}alive   - Bot status          ║
+║ ➤ ${config.PREFIX}menu    - Show this menu      ║
+║ ➤ ${config.PREFIX}owner   - Owner info          ║
+║ ➤ ${config.PREFIX}repo    - GitHub repository   ║
+║ ➤ ${config.PREFIX}runtime - Bot uptime          ║
+║ ➤ ${config.PREFIX}support - Support group       ║
+║ ➤ ${config.PREFIX}time    - Current time        ║
 ╚══════════════════════════════════╝
 
 ╔══════════════════════════════════╗
 ║  Total Commands: ${totalCommands}               ║
-║  Type .help <command> for usage  ║
+║  Type ${config.PREFIX}help <command> for usage  ║
 ║  Support: ${config.SUPPORT_GROUP} ║
 ╚══════════════════════════════════╝`;
 }
 
-async function sendMenuWithLogo(sock, from, msg) {
+async function sendMenuWithLogo(sock, from, quotedMsg) {
   try {
     const logoPath = path.join(process.cwd(), "assets", "logo.png");
     
@@ -85,17 +92,28 @@ async function sendMenuWithLogo(sock, from, msg) {
       await sock.sendMessage(from, {
         image: logoBuffer,
         caption: menuText
-      }, { quoted: msg });
+      }, { quoted: quotedMsg });
       
       console.log("✅ Menu sent with logo");
     } else {
-      await sock.sendMessage(from, { text: buildMenu() }, { quoted: msg });
+      await sock.sendMessage(from, { text: buildMenu() }, { quoted: quotedMsg });
       console.log("✅ Menu sent (text only)");
     }
   } catch (error) {
     console.error("❌ Error sending menu:", error);
-    await sock.sendMessage(from, { text: buildMenu() }, { quoted: msg });
+    await sock.sendMessage(from, { text: buildMenu() }, { quoted: quotedMsg });
   }
 }
 
-module.exports = { buildMenu, sendMenuWithLogo };
+// ========== ADD THIS FOR UNIVERSAL COMMAND LOADER ==========
+async function execute(sock, msg, args, context) {
+  await sendMenuWithLogo(sock, msg.key.remoteJid, msg);
+}
+
+module.exports = {
+  name: "menu",
+  description: "Show the main bot menu with logo",
+  execute,
+  buildMenu,
+  sendMenuWithLogo
+};
