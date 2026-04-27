@@ -1,38 +1,48 @@
 {
   "name": "Lite-Ollver-MD",
-  "description": "WhatsApp Bot with session restore from env",
+  "description": "Lite-Ollver-MD WhatsApp Bot with Web Dashboard",
   "repository": "https://github.com/RichieeTechsHub/Lite-Ollver-MD",
   "logo": "https://raw.githubusercontent.com/RichieeTechsHub/Lite-Ollver-MD/main/assets/logo.png",
-  "keywords": ["whatsapp", "bot", "baileys", "nodejs"],
+  "keywords": ["whatsapp", "bot", "baileys", "nodejs", "heroku"],
   "stack": "heroku-22",
   "env": {
     "BOT_NAME": {
-      "description": "Your bot display name",
+      "description": "Name of your WhatsApp bot",
       "value": "Lite-Ollver-MD",
       "required": true
     },
     "SESSION_ID": {
-      "description": "Your full session ID (including prefix like LITE-OLLVER-MD:~...)",
+      "description": "Your full WhatsApp session ID (e.g., LITE-OLLVER-MD:~eyJjcmVkcyI6...)",
       "required": true
     },
     "OWNER_NUMBER": {
-      "description": "Your WhatsApp number (without +)",
+      "description": "Your WhatsApp number (without + or spaces)",
       "value": "254740479599",
       "required": true
     },
+    "OWNER_NAME": {
+      "description": "Your display name",
+      "value": "RichieeTheeGoat",
+      "required": false
+    },
     "PREFIX": {
-      "description": "Command prefix",
+      "description": "Command prefix (e.g., ., !, #)",
       "value": ".",
       "required": false
     },
     "MODE": {
-      "description": "public or private",
+      "description": "Bot mode: public or private",
       "value": "public",
+      "required": false
+    },
+    "SUPPORT_GROUP": {
+      "description": "WhatsApp group invite link for support",
+      "value": "https://chat.whatsapp.com/JKF3XHbmKY47IQZc7d3LB2",
       "required": false
     }
   },
   "formation": {
-    "worker": {
+    "web": {
       "quantity": 1,
       "size": "basic"
     }
@@ -41,5 +51,8 @@
     {
       "url": "heroku/nodejs"
     }
-  ]
+  ],
+  "scripts": {
+    "postdeploy": "echo Bot deployed successfully!"
+  }
 }
