@@ -1,8 +1,10 @@
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
-const connect = require("./src/system/connect");
+// FIXED: correct path to connect.js
+const connect = require("./src/core/connect");
 
+// FIXED: correct path to config.js (in src folder)
 let config = {
   BOT_NAME: "Lite-Ollver-MD",
   OWNER_NAME: "RichieeTheeGoat",
@@ -11,10 +13,10 @@ let config = {
 };
 
 try {
-  const loadedConfig = require("./config");
+  const loadedConfig = require("./src/config");
   config = { ...config, ...loadedConfig };
 } catch (err) {
-  console.log("⚠️ Using default config");
+  console.log("⚠️ Using default config, could not load src/config.js:", err.message);
 }
 
 const app = express();
