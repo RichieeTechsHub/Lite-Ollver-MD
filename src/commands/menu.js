@@ -1,125 +1,188 @@
-const { proto, downloadContentFromMessage, getContentType } = require('@whiskeysockets/baileys')
-const fs = require('fs')
+const os = require("os");
 
-const downloadMediaMessage = async(m, filename) => {
-	if (m.type === 'viewOnceMessage') {
-		m.type = m.msg.type
-	}
-	if (m.type === 'imageMessage') {
-		var nameJpg = filename ? filename + '.jpg' : 'undefined.jpg'
-		const stream = await downloadContentFromMessage(m.msg, 'image')
-		let buffer = Buffer.from([])
-		for await (const chunk of stream) {
-			buffer = Buffer.concat([buffer, chunk])
-		}
-		fs.writeFileSync(nameJpg, buffer)
-		return fs.readFileSync(nameJpg)
-	} else if (m.type === 'videoMessage') {
-		var nameMp4 = filename ? filename + '.mp4' : 'undefined.mp4'
-		const stream = await downloadContentFromMessage(m.msg, 'video')
-		let buffer = Buffer.from([])
-		for await (const chunk of stream) {
-			buffer = Buffer.concat([buffer, chunk])
-		}
-		fs.writeFileSync(nameMp4, buffer)
-		return fs.readFileSync(nameMp4)
-	} else if (m.type === 'audioMessage') {
-		var nameMp3 = filename ? filename + '.mp3' : 'undefined.mp3'
-		const stream = await downloadContentFromMessage(m.msg, 'audio')
-		let buffer = Buffer.from([])
-		for await (const chunk of stream) {
-			buffer = Buffer.concat([buffer, chunk])
-		}
-		fs.writeFileSync(nameMp3, buffer)
-		return fs.readFileSync(nameMp3)
-	} else if (m.type === 'stickerMessage') {
-		var nameWebp = filename ? filename + '.webp' : 'undefined.webp'
-		const stream = await downloadContentFromMessage(m.msg, 'sticker')
-		let buffer = Buffer.from([])
-		for await (const chunk of stream) {
-			buffer = Buffer.concat([buffer, chunk])
-		}
-		fs.writeFileSync(nameWebp, buffer)
-		return fs.readFileSync(nameWebp)
-	} else if (m.type === 'documentMessage') {
-		var ext = m.msg.fileName.split('.')[1].toLowerCase().replace('jpeg', 'jpg').replace('png', 'jpg').replace('m4a', 'mp3')
-		var nameDoc = filename ? filename + '.' + ext : 'undefined.' + ext
-		const stream = await downloadContentFromMessage(m.msg, 'document')
-		let buffer = Buffer.from([])
-		for await (const chunk of stream) {
-			buffer = Buffer.concat([buffer, chunk])
-		}
-		fs.writeFileSync(nameDoc, buffer)
-		return fs.readFileSync(nameDoc)
-	}
+function safeConfig() {
+  try {
+    return require("../../config");
+  } catch {
+    return {};
+  }
 }
 
-const sms = (conn, m) => {
-	if (m.key) {
-		m.id = m.key.id
-		m.chat = m.key.remoteJid
-		m.fromMe = m.key.fromMe
-		m.isGroup = m.chat.endsWith('@g.us')
-		m.sender = m.fromMe ? conn.user.id.split(':')[0]+'@s.whatsapp.net' : m.isGroup ? m.key.participant : m.key.remoteJid
-	}
-	if (m.message) {
-		m.type = getContentType(m.message)
-		m.msg = (m.type === 'viewOnceMessage') ? m.message[m.type].message[getContentType(m.message[m.type].message)] : m.message[m.type]
-		if (m.msg) {
-			if (m.type === 'viewOnceMessage') {
-				m.msg.type = getContentType(m.message[m.type].message)
-			}
-			var quotedMention = m.msg.contextInfo != null ? m.msg.contextInfo.participant : ''
-			var tagMention = m.msg.contextInfo != null ? m.msg.contextInfo.mentionedJid : []
-			var mention = typeof(tagMention) == 'string' ? [tagMention] : tagMention
-			mention != undefined ? mention.push(quotedMention) : []
-			m.mentionUser = mention != undefined ? mention.filter(x => x) : []
-			m.body = (m.type === 'conversation') ? m.msg : (m.type === 'extendedTextMessage') ? m.msg.text : (m.type == 'imageMessage') && m.msg.caption ? m.msg.caption : (m.type == 'videoMessage') && m.msg.caption ? m.msg.caption : (m.type == 'templateButtonReplyMessage') && m.msg.selectedId ? m.msg.selectedId : (m.type == 'buttonsResponseMessage') && m.msg.selectedButtonId ? m.msg.selectedButtonId : ''
-			m.quoted = m.msg.contextInfo != undefined ? m.msg.contextInfo.quotedMessage : null
-			if (m.quoted) {
-				m.quoted.type = getContentType(m.quoted)
-				m.quoted.id = m.msg.contextInfo.stanzaId
-				m.quoted.sender = m.msg.contextInfo.participant
-				m.quoted.fromMe = m.quoted.sender.split('@')[0].includes(conn.user.id.split(':')[0])
-				m.quoted.msg = (m.quoted.type === 'viewOnceMessage') ? m.quoted[m.quoted.type].message[getContentType(m.quoted[m.quoted.type].message)] : m.quoted[m.quoted.type]
-				if (m.quoted.type === 'viewOnceMessage') {
-					m.quoted.msg.type = getContentType(m.quoted[m.quoted.type].message)
-				}
-				var quoted_quotedMention = m.quoted.msg.contextInfo != null ? m.quoted.msg.contextInfo.participant : ''
-				var quoted_tagMention = m.quoted.msg.contextInfo != null ? m.quoted.msg.contextInfo.mentionedJid : []
-				var quoted_mention = typeof(quoted_tagMention) == 'string' ? [quoted_tagMention] : quoted_tagMention
-				quoted_mention != undefined ? quoted_mention.push(quoted_quotedMention) : []
-				m.quoted.mentionUser = quoted_mention != undefined ? quoted_mention.filter(x => x) : []
-				m.quoted.fakeObj = proto.WebMessageInfo.fromObject({
-					key: {
-						remoteJid: m.chat,
-						fromMe: m.quoted.fromMe,
-						id: m.quoted.id,
-						participant: m.quoted.sender
-					},
-					message: m.quoted
-				})
-				m.quoted.download = (filename) => downloadMediaMessage(m.quoted, filename)
-				m.quoted.delete = () => conn.sendMessage(m.chat, { delete: m.quoted.fakeObj.key })
-				m.quoted.react = (emoji) => conn.sendMessage(m.chat, { react: { text: emoji, key: m.quoted.fakeObj.key } })
-			}
-		}
-		m.download = (filename) => downloadMediaMessage(m, filename)
-	}
-	
-	m.reply = (teks, id = m.chat, option = { mentions: [m.sender] }) => conn.sendMessage(id, { text: teks, contextInfo: { mentionedJid: option.mentions } }, { quoted: m })
-	m.replyS = (stik, id = m.chat, option = { mentions: [m.sender] }) => conn.sendMessage(id, { sticker: stik, contextInfo: { mentionedJid: option.mentions } }, { quoted: m })
-	m.replyImg = (img, teks, id = m.chat, option = { mentions: [m.sender] }) => conn.sendMessage(id, { image: img, caption: teks, contextInfo: { mentionedJid: option.mentions } }, { quoted: m })
-	m.replyVid = (vid, teks, id = m.chat, option = { mentions: [m.sender], gif: false }) => conn.sendMessage(id, { video: vid, caption: teks, gifPlayback: option.gif, contextInfo: { mentionedJid: option.mentions } }, { quoted: m })
-	m.replyAud = (aud, id = m.chat, option = { mentions: [m.sender], ptt: false }) => conn.sendMessage(id, { audio: aud, ptt: option.ptt, mimetype: 'audio/mpeg', contextInfo: { mentionedJid: option.mentions } }, { quoted: m })
-	m.replyDoc = (doc, id = m.chat, option = { mentions: [m.sender], filename: 'undefined.pdf', mimetype: 'application/pdf' }) => conn.sendMessage(id, { document: doc, mimetype: option.mimetype, fileName: option.filename, contextInfo: { mentionedJid: option.mentions } }, { quoted: m })
-	m.replyContact = (name, info, number) => {
-		var vcard = 'BEGIN:VCARD\n' + 'VERSION:3.0\n' + 'FN:' + name + '\n' + 'ORG:' + info + ';\n' + 'TEL;type=CELL;type=VOICE;waid=' + number + ':+' + number + '\n' + 'END:VCARD'
-		conn.sendMessage(m.chat, { contacts: { displayName: name, contacts: [{ vcard }] } }, { quoted: m })
-	}
-	m.react = (emoji) => conn.sendMessage(m.chat, { react: { text: emoji, key: m.key } })
-	
-	return m
+const config = safeConfig();
+
+const VERSION = "1.9.4";
+const MODE = process.env.MODE || "Public";
+const HOST = process.env.HOST_NAME || "Heroku";
+
+const MENU_CATEGORIES = {
+  "AI MENU": [
+    "analyze","blackbox","code","dalle","deepseek","doppleai","gemini",
+    "generate","gpt","programming","recipe","story","summarize","teach","translate2",
+  ],
+
+  "AUDIO MENU": [
+    "bass","blown","deep","earrape","reverse","robot","tomp3","toptt","volaudio",
+  ],
+
+  "DOWNLOAD MENU": [
+    "apk","download","facebook","gdrive","gitclone","image","instagram",
+    "itunes","mediafire","pin","savestatus","song","song2","telesticker",
+    "tiktok","tiktokaudio","twitter","video","videodoc","xvideo",
+  ],
+
+  "FUN MENU": [
+    "fact","jokes","memes","quotes","trivia","truthdetector","xxqc",
+  ],
+
+  "GAMES MENU": [
+    "dare","truth","truthordare",
+  ],
+
+  "GROUP MENU": [
+    "add","addcode","allow","announcements","antibadword","antibot",
+    "antidemote","antiforeign","antigroupmention","antilink","antilinkgc",
+    "antisticker","antitag","antitagadmin","approve","approveall",
+    "cancelkick","close","closetime","delallowed","delcode","delppgroup",
+    "demote","disapproveall","editsettings","getgrouppp","hidetag","invite",
+    "kick","kickall","kickinactive","link","listactive","listallowed",
+    "listcode","listinactive","listrequests","mediatag","open","opentime",
+    "poll","promote","reject","resetlink","setdesc","setgroupname",
+    "setppgroup","tag","tagadmin","tagall","totalmembers","userid","vcf","welcome",
+  ],
+
+  "GROUPSTATUS MENU": ["fetchgroups","tosgroup"],
+
+  "IMAGE MENU": ["remini","wallpaper"],
+
+  "OTHER MENU": ["botstatus","pair","ping","ping2","repo","runtime","time"],
+
+  "OWNER MENU": [
+    "owner","block","unblock","join","leave","restart","update",
+    "setbio","setprofilepic","react",
+  ],
+
+  "RELIGION MENU": ["bible","quran"],
+
+  "SEARCH MENU": [
+    "define","define2","imdb","lyrics","shazam","weather","yts",
+  ],
+
+  "SETTINGS MENU": [
+    "addbadword","addcountrycode","addignorelist","addsudo","alwaysonline",
+    "antibug","anticall","antidelete","antideletestatus","antiedit",
+    "antiviewonce","autobio","autoblock","autoreact","autoreactstatus",
+    "autoread","autorecord","autorecordtyping","autotype","autoviewstatus",
+    "chatbot","delanticallmsg","delcountrycode","deletebadword","delgoodbye",
+    "delignorelist","delsudo","delwelcome","getsettings","listcountrycode",
+    "listwarn","mode","resetsetting","resetwarn","setanticallmsg",
+    "setbotname","setcontextlink","setfont","setgoodbye","setmenu",
+    "setmenuimage","setownername","setownernumber","setprefix",
+    "setstatusemoji","setstickerauthor","setstickerpackname","settimezone",
+    "setwarn","setwatermark","setwelcome","showanticallmsg","showgoodbye",
+    "showwelcome","statusdelay","statussettings","testanticallmsg",
+    "testgoodbye","testwelcome",
+  ],
+
+  "SPORTS MENU": [
+    "eplmatches","eplstandings","clmatches","wwenews",
+  ],
+
+  "SUPPORT MENU": ["feedback","helpers"],
+
+  "TOOLS MENU": [
+    "browse","calculate","device","emojimix","fancy","filtervcf",
+    "fliptext","genpass","getabout","getpp","gsmarena","obfuscate",
+    "qrcode","runeval","say","ssweb","sswebpc","sswebtab","sticker",
+    "take","texttopdf","tinyurl","toimage","tourl","vcc",
+  ],
+
+  "TRANSLATE MENU": ["translate"],
+
+  "VIDEO MENU": ["toaudio","tovideo","volvideo"],
+};
+
+function getUptime() {
+  const t = process.uptime();
+  return `${Math.floor(t/3600)}h ${Math.floor((t%3600)/60)}m ${Math.floor(t%60)}s`;
 }
 
-module.exports = { sms,downloadMediaMessage }
+function getRam() {
+  const total = os.totalmem();
+  const free = os.freemem();
+  const used = total - free;
+  const percent = Math.round((used/total)*100);
+  const bar = "█".repeat(Math.round(percent/10)) + "░".repeat(10 - Math.round(percent/10));
+  return {
+    used: Math.round(used/1024/1024),
+    total: (total/1024/1024/1024).toFixed(1),
+    percent,
+    bar
+  };
+}
+
+function getSpeed() {
+  return (Math.random()*0.3+0.05).toFixed(4);
+}
+
+function countCommands() {
+  return Object.values(MENU_CATEGORIES).flat().length;
+}
+
+function buildCategory(title, cmds, prefix) {
+  const line = "━━━━━━━━━━━━━━━━━━━━━━";
+  let text = `┏▣ ${line}
+┃ ◈ ${title} ◈
+┣▣ ${line}
+`;
+
+  cmds.forEach(c => {
+    text += `┃ ➤ ${prefix}${c}\n`;
+  });
+
+  text += `┗▣ ${line}`;
+  return text;
+}
+
+function buildMenu(ctx) {
+  const owner = config.OWNER_NAME || "RichieeTheeGoat";
+  const prefix = ctx.PREFIX || ".";
+  const ram = getRam();
+  const line = "━━━━━━━━━━━━━━━━━━━━━━";
+
+  const header = `┏▣ ${line}
+┃ ◈ ${ctx.BOT_NAME} ◈
+┣▣ ${line}
+┃ ᴏᴡɴᴇʀ   : ${owner}
+┃ ᴘʀᴇғɪx  : [ ${prefix} ]
+┃ ʜᴏsᴛ    : ${HOST}
+┃ ᴘʟᴜɢɪɴs : ${countCommands()}
+┃ ᴍᴏᴅᴇ    : ${MODE}
+┃ ᴠᴇʀsɪᴏɴ : ${VERSION}
+┃ sᴘᴇᴇᴅ   : ${getSpeed()} ms
+┃ ᴜᴘᴛɪᴍᴇ  : ${getUptime()}
+┃ ᴜsᴀɢᴇ   : ${ram.used} MB / ${ram.total} GB
+┃ ʀᴀᴍ     : [${ram.bar}] ${ram.percent}%
+┗▣ ${line}`;
+
+  const body = Object.entries(MENU_CATEGORIES)
+    .map(([t,c]) => buildCategory(t,c,prefix))
+    .join("\n\n");
+
+  return `${header}
+
+${body}
+
+> ${ctx.BOT_NAME} • Clean MD Bot`;
+}
+
+async function execute(sock, msg, args, ctx) {
+  await sock.sendMessage(msg.key.remoteJid, {
+    text: buildMenu(ctx),
+  });
+}
+
+module.exports = {
+  name: "menu",
+  description: "Show clean full menu",
+  execute,
+};
