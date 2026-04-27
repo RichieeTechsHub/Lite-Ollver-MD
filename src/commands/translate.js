@@ -1,5 +1,7 @@
-async function execute(command, { args, fullArgs }) {
-  return "🌐 *Translate*\nUsage: .translate en es Hello\nThis feature is coming soon!";
+async function execute(sock, msg, args) {
+  await sock.sendMessage(msg.key.remoteJid, {
+    text: "✅ *translate* command is working.\n\n⚙️ Advanced logic will be added next."
+  });
 }
 
-module.exports = { execute };
+module.exports = { name: "translate", description: "translate command", execute };

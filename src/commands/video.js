@@ -1,11 +1,7 @@
-async function execute(command, { args, fullArgs }) {
-  const responses = {
-    toaudio: "🎵 *Video to Audio*\nThis feature is coming soon!",
-    toimage: "🖼️ *Video to Image*\nThis feature is coming soon!",
-    tovideo: "🎬 *Image to Video*\nThis feature is coming soon!"
-  };
-  
-  return responses[command] || `❌ ${command} command not implemented yet`;
+async function execute(sock, msg, args) {
+  await sock.sendMessage(msg.key.remoteJid, {
+    text: "✅ *video* command is working.\n\n⚙️ Advanced logic will be added next."
+  });
 }
 
-module.exports = { execute };
+module.exports = { name: "video", description: "video command", execute };
