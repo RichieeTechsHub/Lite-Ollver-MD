@@ -5,6 +5,7 @@ const {
   useMultiFileAuthState,
   DisconnectReason,
   fetchLatestBaileysVersion,
+  jidNormalizedUser,
 } = require("@whiskeysockets/baileys");
 
 const fs = require("fs-extra");
@@ -21,6 +22,7 @@ const AUTH_DIR = path.join(__dirname, "../auth_info");
 let commands = new Map();
 let isConnecting = false;
 let startupSent = false;
+let reconnectTimer = null;
 
 async function restoreSessionFromEnv() {
   if (!SESSION_ID) {
@@ -76,9 +78,10 @@ async function loadCommands() {
 
   for (const file of commandFiles) {
     try {
-      delete require.cache[require.resolve(path.join(commandsPath, file))];
+      const fullPath = path.join(commandsPath, file);
+      delete require.cache[require.resolve(fullPath)];
 
-      const cmd = require(path.join(commandsPath, file));
+      const cmd = require(fullPath);
       let commandName = path.basename(file, ".js");
       let executeFn = null;
 
@@ -95,6 +98,8 @@ async function loadCommands() {
       if (executeFn) {
         commands.set(commandName.toLowerCase(), executeFn);
         console.log(`✅ Loaded command: ${commandName}`);
+      } else {
+        console.warn(`⚠️ Skipped command ${file}: no execute/run function`);
       }
     } catch (err) {
       console.error(`❌ Error loading command ${file}:`, err.message);
@@ -104,23 +109,58 @@ async function loadCommands() {
   console.log(`📦 Total commands loaded: ${commands.size}`);
 }
 
+function unwrapMessage(message) {
+  if (!message) return null;
+
+  if (message.ephemeralMessage?.message) {
+    return unwrapMessage(message.ephemeralMessage.message);
+  }
+
+  if (message.viewOnceMessage?.message) {
+    return unwrapMessage(message.viewOnceMessage.message);
+  }
+
+  if (message.viewOnceMessageV2?.message) {
+    return unwrapMessage(message.viewOnceMessageV2.message);
+  }
+
+  return message;
+}
+
+function getMessageText(message) {
+  const m = unwrapMessage(message);
+
+  if (!m) return "";
+
+  return (
+    m.conversation ||
+    m.extendedTextMessage?.text ||
+    m.imageMessage?.caption ||
+    m.videoMessage?.caption ||
+    m.buttonsResponseMessage?.selectedButtonId ||
+    m.listResponseMessage?.singleSelectReply?.selectedRowId ||
+    m.templateButtonReplyMessage?.selectedId ||
+    ""
+  );
+}
+
 async function sendStartupMessage(sock) {
   if (startupSent) return;
 
   try {
-    const ownerJid = `${OWNER_NUMBER}@s.whatsapp.net`;
+    const botJid = jidNormalizedUser(sock.user.id);
 
-    await sock.sendMessage(ownerJid, {
-      text:
-        `🤖 *${BOT_NAME}* is now ONLINE! ✅\n\n` +
-        `⚡ Prefix: ${PREFIX}\n` +
-        `📦 Commands: ${commands.size}\n` +
-        `👑 Owner: wa.me/${OWNER_NUMBER}\n\n` +
-        `Type *${PREFIX}menu* to see all commands.`,
-    });
+    const message =
+      `🤖 *${BOT_NAME}* is now ONLINE! ✅\n\n` +
+      `⚡ Prefix: ${PREFIX}\n` +
+      `📦 Commands: ${commands.size}\n\n` +
+      `📱 Host Number: ${botJid.split("@")[0]}\n` +
+      `💡 Startup alert sent only to the bot host inbox.`;
+
+    await sock.sendMessage(botJid, { text: message });
 
     startupSent = true;
-    console.log("📨 Startup notification sent to owner");
+    console.log("📨 Startup message sent to bot host number");
   } catch (err) {
     console.log("⚠️ Could not send startup message:", err.message);
   }
@@ -170,6 +210,12 @@ async function connect() {
 
     if (connection === "open") {
       isConnecting = false;
+
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+
       console.log(`✅ ${BOT_NAME} is ONLINE with ${commands.size} commands!`);
       await sendStartupMessage(sock);
     }
@@ -190,43 +236,52 @@ async function connect() {
         process.exit(1);
       }
 
+      if (reconnectTimer) return;
+
       console.log("🔄 Reconnecting in 10 seconds...");
-      setTimeout(connect, 10000);
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        connect();
+      }, 10000);
     }
   });
 
   sock.ev.on("messages.upsert", async ({ messages }) => {
     try {
-      const msg = messages[0];
+      const msg = messages?.[0];
 
-      if (!msg?.message || msg.key.fromMe) return;
+      if (!msg?.message) return;
+      if (msg.key.fromMe) return;
 
-      let text = "";
+      const text = getMessageText(msg.message).trim();
 
-      if (msg.message.conversation) {
-        text = msg.message.conversation;
-      } else if (msg.message.extendedTextMessage?.text) {
-        text = msg.message.extendedTextMessage.text;
-      } else if (msg.message.imageMessage?.caption) {
-        text = msg.message.imageMessage.caption;
-      } else if (msg.message.videoMessage?.caption) {
-        text = msg.message.videoMessage.caption;
-      } else {
+      if (!text) return;
+      if (!text.startsWith(PREFIX)) return;
+
+      const args = text.slice(PREFIX.length).trim().split(/ +/).filter(Boolean);
+      const commandName = args.shift()?.toLowerCase();
+
+      if (!commandName) return;
+
+      console.log(`📩 Command received: ${commandName}`);
+
+      if (!commands.has(commandName)) {
+        await sock.sendMessage(msg.key.remoteJid, {
+          text: `❌ Unknown command: *${PREFIX}${commandName}*\n\nType *${PREFIX}menu* to see commands.`,
+        });
         return;
       }
 
-      if (!text.startsWith(PREFIX)) return;
-
-      const args = text.slice(PREFIX.length).trim().split(/ +/);
-      const commandName = args.shift()?.toLowerCase();
-
-      if (!commandName || !commands.has(commandName)) return;
-
       const executeFn = commands.get(commandName);
-      const context = { BOT_NAME, PREFIX, OWNER_NUMBER };
+      const context = {
+        BOT_NAME,
+        PREFIX,
+        OWNER_NUMBER,
+        COMMANDS_COUNT: commands.size,
+      };
 
       await executeFn(sock, msg, args, context);
-      console.log(`📝 Executed command: ${commandName}`);
+      console.log(`✅ Executed command: ${commandName}`);
     } catch (err) {
       console.error("❌ Message handler error:", err.message);
     }
