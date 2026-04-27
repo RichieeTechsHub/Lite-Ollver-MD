@@ -12,6 +12,8 @@ const fs = require("fs-extra");
 const path = require("path");
 const Pino = require("pino");
 
+const { getGroupSettings } = require("../lib/groupUtils");
+
 const BOT_NAME = process.env.BOT_NAME || "Lite-Ollver-MD";
 const PREFIX = process.env.PREFIX || ".";
 const OWNER_NUMBER = process.env.OWNER_NUMBER || "254740479599";
@@ -38,21 +40,17 @@ async function restoreSessionFromEnv() {
     await fs.ensureDir(AUTH_DIR);
 
     if (sessionData.creds) {
-      await fs.writeJson(path.join(AUTH_DIR, "creds.json"), sessionData.creds, { spaces: 2 });
-      console.log("✅ creds.json restored");
+      await fs.writeJson(path.join(AUTH_DIR, "creds.json"), sessionData.creds);
     }
 
     for (const [key, value] of Object.entries(sessionData)) {
       if (key !== "creds" && typeof value === "object") {
-        await fs.writeJson(path.join(AUTH_DIR, `${key}.json`), value, { spaces: 2 });
-        console.log(`✅ ${key}.json restored`);
+        await fs.writeJson(path.join(AUTH_DIR, `${key}.json`), value);
       }
     }
 
-    console.log("✅ Session restored successfully");
     return true;
-  } catch (err) {
-    console.error("❌ Session restore failed:", err.message);
+  } catch {
     return false;
   }
 }
@@ -61,7 +59,6 @@ async function loadCommands() {
   commands.clear();
 
   const commandsPath = path.join(__dirname, "../commands");
-
   if (!fs.existsSync(commandsPath)) return;
 
   const files = fs.readdirSync(commandsPath).filter((f) => f.endsWith(".js"));
@@ -82,16 +79,9 @@ async function loadCommands() {
         name = cmd.name || name;
       }
 
-      if (fn) {
-        commands.set(name.toLowerCase(), fn);
-        console.log(`✅ Loaded command: ${name}`);
-      }
-    } catch (e) {
-      console.log("❌ Command load error:", e.message);
-    }
+      if (fn) commands.set(name.toLowerCase(), fn);
+    } catch {}
   }
-
-  console.log(`📦 Total commands: ${commands.size}`);
 }
 
 function getMessageText(msg) {
@@ -104,6 +94,51 @@ function getMessageText(msg) {
   );
 }
 
+async function deleteMessage(sock, msg) {
+  try {
+    await sock.sendMessage(msg.key.remoteJid, {
+      delete: msg.key,
+    });
+  } catch {}
+}
+
+async function handleAutoModeration(sock, msg) {
+  const jid = msg.key.remoteJid;
+
+  if (!jid.endsWith("@g.us")) return;
+
+  const settings = await getGroupSettings(jid);
+  const text = getMessageText(msg.message).toLowerCase();
+
+  // 🔥 ANTILINK
+  if (settings.antilink) {
+    if (text.includes("chat.whatsapp.com") || text.includes("http")) {
+      await deleteMessage(sock, msg);
+      await sock.sendMessage(jid, { text: "🚫 Link detected & deleted." });
+      return true;
+    }
+  }
+
+  // 🔥 ANTIBADWORD
+  if (settings.antibadword) {
+    const badWords = ["fuck", "shit", "bitch"]; // edit later
+    if (badWords.some((w) => text.includes(w))) {
+      await deleteMessage(sock, msg);
+      await sock.sendMessage(jid, { text: "🚫 Bad word removed." });
+      return true;
+    }
+  }
+
+  // 🔥 ANTISTICKER
+  if (settings.antisticker && msg.message?.stickerMessage) {
+    await deleteMessage(sock, msg);
+    await sock.sendMessage(jid, { text: "🚫 Stickers not allowed." });
+    return true;
+  }
+
+  return false;
+}
+
 async function sendStartupMessage(sock) {
   if (startupSent) return;
 
@@ -112,16 +147,13 @@ async function sendStartupMessage(sock) {
 
     await sock.sendMessage(botJid, {
       text:
-        `🤖 *${BOT_NAME}* is ONLINE\n\n` +
+        `🤖 *${BOT_NAME}* ONLINE\n\n` +
         `⚡ Prefix: ${PREFIX}\n` +
         `📦 Commands: ${commands.size}`,
     });
 
     startupSent = true;
-    console.log("📨 Startup message sent");
-  } catch (e) {
-    console.log("⚠️ Startup message failed");
-  }
+  } catch {}
 }
 
 async function connect() {
@@ -139,64 +171,37 @@ async function connect() {
     auth: state,
     printQRInTerminal: true,
     logger: Pino({ level: "silent" }),
-
     browser: ["Ubuntu", "Chrome", "20.0.04"],
-
-    markOnlineOnConnect: false,
-    syncFullHistory: true,
-    emitOwnEvents: true,
-    fireInitQueries: true,
-
-    connectTimeoutMs: 60000,
-    keepAliveIntervalMs: 30000,
   });
 
   sock.ev.on("creds.update", saveCreds);
 
-  sock.ev.on("connection.update", async (update) => {
-    const { connection, lastDisconnect } = update;
-
+  sock.ev.on("connection.update", async ({ connection, lastDisconnect }) => {
     if (connection === "open") {
       isConnecting = false;
-
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-
-      console.log("✅ Bot connected");
       await sendStartupMessage(sock);
     }
 
     if (connection === "close") {
       isConnecting = false;
-
-      const code = lastDisconnect?.error?.output?.statusCode;
-      console.log("❌ Connection closed:", code);
-
-      if ([401, 403, 405].includes(code)) process.exit(1);
-
       reconnectTimer = setTimeout(connect, 10000);
     }
   });
 
   sock.ev.on("messages.upsert", async ({ messages }) => {
-    console.log("📥 EVENT TRIGGERED");
-
     try {
       const msg = messages[0];
-
       if (!msg?.message) return;
 
-      console.log("📩 RAW MESSAGE RECEIVED");
+      // 🔥 AUTO MODERATION FIRST
+      const stopped = await handleAutoModeration(sock, msg);
+      if (stopped) return;
 
       const text = getMessageText(msg.message);
-
-      console.log("📝 TEXT:", text);
-
       if (!text.startsWith(PREFIX)) return;
 
       const args = text.slice(PREFIX.length).trim().split(" ");
       const commandName = args.shift().toLowerCase();
-
-      console.log("📌 COMMAND:", commandName);
 
       if (!commands.has(commandName)) {
         await sock.sendMessage(msg.key.remoteJid, {
@@ -210,11 +215,7 @@ async function connect() {
         PREFIX,
         OWNER_NUMBER,
       });
-
-      console.log("✅ Command executed");
-    } catch (err) {
-      console.log("❌ Message error:", err.message);
-    }
+    } catch {}
   });
 }
 
