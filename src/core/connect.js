@@ -23,7 +23,9 @@ const AUTH_DIR = path.join(__dirname, "../auth_info");
 
 let commands = new Map();
 let isConnecting = false;
-let startupSent = false;
+
+// store deleted messages
+const messageStore = new Map();
 
 async function restoreSessionFromEnv() {
   if (!SESSION_ID) return false;
@@ -58,7 +60,6 @@ async function loadCommands() {
   commands.clear();
 
   const commandsPath = path.join(__dirname, "../commands");
-
   if (!fs.existsSync(commandsPath)) return;
 
   const files = fs.readdirSync(commandsPath).filter(f => f.endsWith(".js"));
@@ -81,9 +82,7 @@ async function loadCommands() {
 
       if (fn) commands.set(name.toLowerCase(), fn);
 
-    } catch (err) {
-      console.log("❌ Command load error:", file);
-    }
+    } catch {}
   }
 
   console.log(`📦 Loaded commands: ${commands.size}`);
@@ -104,19 +103,48 @@ function getSenderNumber(msg) {
   return jid.split("@")[0].split(":")[0];
 }
 
+// 🔥 GROUP MODERATION BACK
+async function handleAutoModeration(sock, msg) {
+  const jid = msg.key.remoteJid;
+  if (!jid.endsWith("@g.us")) return false;
+
+  const settings = await getGroupSettings(jid);
+  const text = getMessageText(msg.message).toLowerCase();
+
+  if (settings.antilink && (text.includes("chat.whatsapp.com") || text.includes("http"))) {
+    await sock.sendMessage(jid, { delete: msg.key });
+    await sock.sendMessage(jid, { text: "🚫 Link deleted" });
+    return true;
+  }
+
+  if (settings.antibadword) {
+    const badWords = ["fuck", "shit", "bitch"];
+    if (badWords.some(w => text.includes(w))) {
+      await sock.sendMessage(jid, { delete: msg.key });
+      await sock.sendMessage(jid, { text: "🚫 Bad word removed" });
+      return true;
+    }
+  }
+
+  if (settings.antisticker && msg.message?.stickerMessage) {
+    await sock.sendMessage(jid, { delete: msg.key });
+    return true;
+  }
+
+  return false;
+}
+
+// 🔥 STATUS HANDLER
 async function handleAutoStatus(sock, msg, settings) {
   if (msg.key.remoteJid !== "status@broadcast") return false;
 
   if (settings.autoviewstatus) {
     await sock.readMessages([msg.key]).catch(() => {});
-    console.log("👁️ Viewed status");
   }
 
   if (settings.autoreactstatus) {
-    const emoji = settings.setstatusemoji || "🔥";
-
     await sock.sendMessage("status@broadcast", {
-      react: { text: emoji, key: msg.key }
+      react: { text: settings.setstatusemoji || "🔥", key: msg.key }
     }).catch(() => {});
   }
 
@@ -142,6 +170,29 @@ async function connect() {
 
   sock.ev.on("creds.update", saveCreds);
 
+  // 🔥 STORE MESSAGES (for antidelete)
+  sock.ev.on("messages.upsert", async ({ messages }) => {
+    const msg = messages[0];
+    if (!msg?.key) return;
+
+    messageStore.set(msg.key.id, msg);
+  });
+
+  // 🔥 ANTIDELETE
+  sock.ev.on("messages.delete", async ({ keys }) => {
+    const settings = await readSettings();
+    if (!settings.antidelete) return;
+
+    for (const key of keys) {
+      const msg = messageStore.get(key.id);
+      if (!msg) continue;
+
+      await sock.sendMessage(key.remoteJid, {
+        text: "🚫 Deleted message recovered:\n\n" + getMessageText(msg.message)
+      });
+    }
+  });
+
   sock.ev.on("connection.update", async ({ connection }) => {
     if (connection === "open") {
       console.log("✅ Connected");
@@ -153,8 +204,7 @@ async function connect() {
       }
 
       if (settings.autobio) {
-        const bio = "Lite-Ollver-MD • " + new Date().toLocaleTimeString();
-        await sock.updateProfileStatus(bio).catch(() => {});
+        await sock.updateProfileStatus("Lite-Ollver-MD • Online").catch(() => {});
       }
     }
 
@@ -173,30 +223,33 @@ async function connect() {
       // STATUS
       if (await handleAutoStatus(sock, msg, settings)) return;
 
-      // AUTOREAD
+      // VIEW ONCE BYPASS
+      if (settings.antiviewonce && msg.message?.viewOnceMessage) {
+        const inner = msg.message.viewOnceMessage.message;
+        await sock.sendMessage(msg.key.remoteJid, inner);
+        return;
+      }
+
       if (settings.autoread) {
-        await sock.readMessages([msg.key]).catch(() => {});
+        await sock.readMessages([msg.key]);
       }
 
-      // AUTOTYPING
       if (settings.autotype) {
-        await sock.sendPresenceUpdate("composing", msg.key.remoteJid).catch(() => {});
+        await sock.sendPresenceUpdate("composing", msg.key.remoteJid);
       }
 
-      // AUTORECORD
       if (settings.autorecord) {
-        await sock.sendPresenceUpdate("recording", msg.key.remoteJid).catch(() => {});
+        await sock.sendPresenceUpdate("recording", msg.key.remoteJid);
       }
 
-      // AUTOREACT
       if (settings.autoreact && !msg.key.fromMe) {
         await sock.sendMessage(msg.key.remoteJid, {
-          react: {
-            text: settings.setstatusemoji || "✅",
-            key: msg.key
-          }
-        }).catch(() => {});
+          react: { text: settings.setstatusemoji || "✅", key: msg.key }
+        });
       }
+
+      const stopped = await handleAutoModeration(sock, msg);
+      if (stopped) return;
 
       const prefix = settings.prefix || DEFAULT_PREFIX;
       const mode = settings.mode || "public";
