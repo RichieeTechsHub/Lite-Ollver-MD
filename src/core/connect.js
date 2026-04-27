@@ -18,6 +18,7 @@ const BOT_NAME = process.env.BOT_NAME || "Lite-Ollver-MD";
 const DEFAULT_PREFIX = process.env.PREFIX || ".";
 const OWNER_NUMBER = process.env.OWNER_NUMBER || "254740479599";
 const SESSION_ID = process.env.SESSION_ID || "";
+
 const AUTH_DIR = path.join(__dirname, "../auth_info");
 
 let commands = new Map();
@@ -29,10 +30,12 @@ async function restoreSessionFromEnv() {
 
   try {
     let base64Data = SESSION_ID;
+
     if (SESSION_ID.includes(":~")) base64Data = SESSION_ID.split(":~")[1];
     else if (SESSION_ID.includes(":")) base64Data = SESSION_ID.split(":")[1];
 
     const sessionData = JSON.parse(Buffer.from(base64Data, "base64").toString("utf-8"));
+
     await fs.ensureDir(AUTH_DIR);
 
     if (sessionData.creds) {
@@ -55,9 +58,10 @@ async function loadCommands() {
   commands.clear();
 
   const commandsPath = path.join(__dirname, "../commands");
+
   if (!fs.existsSync(commandsPath)) return;
 
-  const files = fs.readdirSync(commandsPath).filter((f) => f.endsWith(".js"));
+  const files = fs.readdirSync(commandsPath).filter(f => f.endsWith(".js"));
 
   for (const file of files) {
     try {
@@ -65,6 +69,7 @@ async function loadCommands() {
       delete require.cache[require.resolve(fullPath)];
 
       const cmd = require(fullPath);
+
       let name = path.basename(file, ".js");
       let fn = null;
 
@@ -75,12 +80,13 @@ async function loadCommands() {
       }
 
       if (fn) commands.set(name.toLowerCase(), fn);
+
     } catch (err) {
-      console.log("Command load error:", file, err.message);
+      console.log("❌ Command load error:", file);
     }
   }
 
-  console.log(`📦 Total commands: ${commands.size}`);
+  console.log(`📦 Loaded commands: ${commands.size}`);
 }
 
 function getMessageText(msg) {
@@ -98,88 +104,23 @@ function getSenderNumber(msg) {
   return jid.split("@")[0].split(":")[0];
 }
 
-async function deleteMessage(sock, msg) {
-  try {
-    await sock.sendMessage(msg.key.remoteJid, { delete: msg.key });
-  } catch {}
-}
-
 async function handleAutoStatus(sock, msg, settings) {
   if (msg.key.remoteJid !== "status@broadcast") return false;
 
   if (settings.autoviewstatus) {
     await sock.readMessages([msg.key]).catch(() => {});
-    console.log("👁️ Auto viewed status");
+    console.log("👁️ Viewed status");
   }
 
   if (settings.autoreactstatus) {
     const emoji = settings.setstatusemoji || "🔥";
 
-    await sock
-      .sendMessage("status@broadcast", {
-        react: {
-          text: emoji,
-          key: msg.key,
-        },
-      })
-      .catch(() => {});
-
-    console.log("🔥 Auto reacted to status");
+    await sock.sendMessage("status@broadcast", {
+      react: { text: emoji, key: msg.key }
+    }).catch(() => {});
   }
 
   return true;
-}
-
-async function handleAutoModeration(sock, msg) {
-  const jid = msg.key.remoteJid;
-  if (!jid.endsWith("@g.us")) return false;
-
-  const settings = await getGroupSettings(jid);
-  const text = getMessageText(msg.message).toLowerCase();
-
-  if (settings.antilink && (text.includes("chat.whatsapp.com") || text.includes("http"))) {
-    await deleteMessage(sock, msg);
-    await sock.sendMessage(jid, { text: "🚫 Link detected & deleted." });
-    return true;
-  }
-
-  if (settings.antibadword) {
-    const badWords = settings.badwords || ["fuck", "shit", "bitch"];
-    if (badWords.some((w) => text.includes(String(w).toLowerCase()))) {
-      await deleteMessage(sock, msg);
-      await sock.sendMessage(jid, { text: "🚫 Bad word removed." });
-      return true;
-    }
-  }
-
-  if (settings.antisticker && msg.message?.stickerMessage) {
-    await deleteMessage(sock, msg);
-    await sock.sendMessage(jid, { text: "🚫 Stickers not allowed." });
-    return true;
-  }
-
-  return false;
-}
-
-async function sendStartupMessage(sock) {
-  if (startupSent) return;
-
-  try {
-    const botJid = jidNormalizedUser(sock.user.id);
-    const settings = await readSettings();
-    const prefix = settings.prefix || DEFAULT_PREFIX;
-    const mode = settings.mode || "public";
-
-    await sock.sendMessage(botJid, {
-      text:
-        `🤖 *${BOT_NAME}* ONLINE\n\n` +
-        `⚡ Prefix: ${prefix}\n` +
-        `🔐 Mode: ${mode}\n` +
-        `📦 Commands: ${commands.size}`,
-    });
-
-    startupSent = true;
-  } catch {}
 }
 
 async function connect() {
@@ -197,23 +138,27 @@ async function connect() {
     auth: state,
     printQRInTerminal: true,
     logger: Pino({ level: "silent" }),
-    browser: ["Ubuntu", "Chrome", "20.0.04"],
-    markOnlineOnConnect: false,
-    syncFullHistory: true,
-    emitOwnEvents: true,
   });
 
   sock.ev.on("creds.update", saveCreds);
 
   sock.ev.on("connection.update", async ({ connection }) => {
     if (connection === "open") {
-      isConnecting = false;
-      console.log("✅ Bot connected");
-      await sendStartupMessage(sock);
+      console.log("✅ Connected");
+
+      const settings = await readSettings();
+
+      if (settings.alwaysonline) {
+        await sock.sendPresenceUpdate("available").catch(() => {});
+      }
+
+      if (settings.autobio) {
+        const bio = "Lite-Ollver-MD • " + new Date().toLocaleTimeString();
+        await sock.updateProfileStatus(bio).catch(() => {});
+      }
     }
 
     if (connection === "close") {
-      isConnecting = false;
       setTimeout(connect, 10000);
     }
   });
@@ -225,60 +170,58 @@ async function connect() {
 
       const settings = await readSettings();
 
-      const statusHandled = await handleAutoStatus(sock, msg, settings);
-      if (statusHandled) return;
+      // STATUS
+      if (await handleAutoStatus(sock, msg, settings)) return;
 
+      // AUTOREAD
       if (settings.autoread) {
         await sock.readMessages([msg.key]).catch(() => {});
       }
 
+      // AUTOTYPING
       if (settings.autotype) {
         await sock.sendPresenceUpdate("composing", msg.key.remoteJid).catch(() => {});
       }
 
-      if (settings.autorecord || settings.autorecordtyping) {
+      // AUTORECORD
+      if (settings.autorecord) {
         await sock.sendPresenceUpdate("recording", msg.key.remoteJid).catch(() => {});
       }
 
-      const stopped = await handleAutoModeration(sock, msg);
-      if (stopped) return;
+      // AUTOREACT
+      if (settings.autoreact && !msg.key.fromMe) {
+        await sock.sendMessage(msg.key.remoteJid, {
+          react: {
+            text: settings.setstatusemoji || "✅",
+            key: msg.key
+          }
+        }).catch(() => {});
+      }
 
       const prefix = settings.prefix || DEFAULT_PREFIX;
       const mode = settings.mode || "public";
 
-      const text = getMessageText(msg.message).trim();
+      const text = getMessageText(msg.message);
       if (!text.startsWith(prefix)) return;
 
-      const senderNumber = getSenderNumber(msg);
-      const isOwner = senderNumber === OWNER_NUMBER;
+      const sender = getSenderNumber(msg);
+      const isOwner = sender === OWNER_NUMBER;
 
-      if (mode === "private" && !isOwner) {
-        return sock.sendMessage(msg.key.remoteJid, {
-          text: "🔒 Bot is currently in private mode.",
-        });
-      }
+      if (mode === "private" && !isOwner) return;
 
-      const args = text.slice(prefix.length).trim().split(/ +/).filter(Boolean);
-      const commandName = args.shift()?.toLowerCase();
+      const args = text.slice(prefix.length).trim().split(" ");
+      const cmdName = args.shift().toLowerCase();
 
-      if (!commandName) return;
+      if (!commands.has(cmdName)) return;
 
-      if (!commands.has(commandName)) {
-        return sock.sendMessage(msg.key.remoteJid, {
-          text: `❌ Unknown command.\n\nType *${prefix}menu*`,
-        });
-      }
-
-      await commands.get(commandName)(sock, msg, args, {
+      await commands.get(cmdName)(sock, msg, args, {
         BOT_NAME,
         PREFIX: prefix,
         OWNER_NUMBER,
-        MODE: mode,
-        COMMANDS_COUNT: commands.size,
-        COMMAND_NAMES: [...commands.keys()],
       });
+
     } catch (err) {
-      console.log("❌ Message error:", err.message);
+      console.log("❌ Error:", err.message);
     }
   });
 }
