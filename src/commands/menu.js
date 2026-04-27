@@ -1,4 +1,4 @@
-﻿const fs = require("fs");
+const fs = require("fs");
 const path = require("path");
 const os = require("os");
 
@@ -13,10 +13,10 @@ function safeConfig() {
 const config = safeConfig();
 
 const VERSION = "1.9.4";
-const MODE = process.env.MODE || "Public";
+const MODE = process.env.MODE || "public";
 const HOST = process.env.HOST_NAME || "Heroku";
 
-const LOGO_PATH = path.join(__dirname, "..", "..", "assets", "logo.png");
+const LOGO_PATH = path.join(__dirname, "..", "..", "assets", "menu.png");
 const FALLBACK_LOGO =
   process.env.MENU_LOGO_URL || "https://i.ibb.co/5R9kHkH/bot-logo.jpg";
 
@@ -51,14 +51,11 @@ function getRam() {
   const free = os.freemem();
   const used = total - free;
   const percent = Math.round((used / total) * 100);
-  const filled = Math.min(10, Math.max(0, Math.round(percent / 10)));
-  const bar = "â–ˆ".repeat(filled) + "â–‘".repeat(10 - filled);
 
   return {
     used: Math.round(used / 1024 / 1024),
     total: (total / 1024 / 1024 / 1024).toFixed(1),
     percent,
-    bar,
   };
 }
 
@@ -70,47 +67,41 @@ function countCommands() {
   return Object.values(MENU_CATEGORIES).flat().length;
 }
 
-// âœ… FIXED (NO PREFIX IN COMMAND LIST)
 function buildCategory(title, cmds) {
-  const line = "â”â”â”â”â”â”â”â”â”â”â”â”";
-  let text = `â•­â”€â ${title}\n`;
+  let text = `\n*${title}*\n`;
 
-  cmds.forEach((c) => {
-    text += `â”‚â—¦ ${c}\n`;
+  cmds.forEach((cmd) => {
+    text += `• ${cmd}\n`;
   });
 
-  text += `â•°${line}`;
   return text;
 }
 
 function buildMenu(ctx) {
-  const owner = config.OWNER_NAME || "RichieeTheeGoat";
+  const owner = config.OWNER_NAME || process.env.OWNER_NAME || "RichieeTheeGoat";
   const prefix = ctx.PREFIX || ".";
   const ram = getRam();
-  const line = "â”â”â”â”â”â”â”â”â”â”â”â”";
 
-  const header = `â•­â”€â ${ctx.BOT_NAME || "Lite-Ollver-MD"}
-â”‚ owner  : ${owner}
-â”‚ prefix : ${prefix}
-â”‚ host   : ${HOST}
-â”‚ cmds   : ${countCommands()}
-â”‚ mode   : ${ctx.MODE || MODE}
-â”‚ ver    : ${VERSION}
-â”‚ speed  : ${getSpeed()} ms
-â”‚ uptime : ${getUptime()}
-â”‚ usage  : ${ram.used} MB / ${ram.total} GB
-â”‚ ram    : [${ram.bar}] ${ram.percent}%
-â•°${line}`;
+  const header =
+`*${ctx.BOT_NAME || "Lite-Ollver-MD"}*
+
+Owner  : ${owner}
+Prefix : ${prefix}
+Host   : ${HOST}
+Cmds   : ${countCommands()}
+Mode   : ${ctx.MODE || MODE}
+Ver    : ${VERSION}
+Speed  : ${getSpeed()} ms
+Uptime : ${getUptime()}
+Usage  : ${ram.used} MB / ${ram.total} GB
+RAM    : ${ram.percent}%
+`;
 
   const body = Object.entries(MENU_CATEGORIES)
-    .map(([t, c]) => buildCategory(t, c))
-    .join("\n\n");
+    .map(([title, commands]) => buildCategory(title, commands))
+    .join("");
 
-  return `${header}
-
-${body}
-
-> ${ctx.BOT_NAME || "Lite-Ollver-MD"}`;
+  return `${header}${body}\n*${ctx.BOT_NAME || "Lite-Ollver-MD"}*`;
 }
 
 function getMenuImage() {
@@ -138,6 +129,6 @@ async function execute(sock, msg, args, ctx) {
 
 module.exports = {
   name: "menu",
-  description: "Show slim menu with logo",
+  description: "Show clean menu with logo",
   execute,
 };
