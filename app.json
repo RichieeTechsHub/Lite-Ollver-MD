@@ -1,44 +1,14 @@
 {
   "name": "Lite-Ollver-MD",
-  "description": "Lite-Ollver-MD WhatsApp Bot with Web Dashboard",
+  "description": "Lite-Ollver-MD WhatsApp Bot with AI, Downloader and Automation",
   "repository": "https://github.com/RichieeTechsHub/Lite-Ollver-MD",
   "logo": "https://raw.githubusercontent.com/RichieeTechsHub/Lite-Ollver-MD/main/assets/logo.png",
   "keywords": ["whatsapp", "bot", "baileys", "nodejs", "heroku"],
   "stack": "heroku-22",
   "env": {
-    "BOT_NAME": {
-      "description": "Name of your WhatsApp bot",
-      "value": "Lite-Ollver-MD",
-      "required": true
-    },
     "SESSION_ID": {
-      "description": "Your full WhatsApp session ID (e.g., LITE-OLLVER-MD:~eyJjcmVkcyI6...)",
+      "description": "Paste your full WhatsApp session ID here",
       "required": true
-    },
-    "OWNER_NUMBER": {
-      "description": "Your WhatsApp number (without + or spaces)",
-      "value": "254740479599",
-      "required": true
-    },
-    "OWNER_NAME": {
-      "description": "Your display name",
-      "value": "RichieeTheeGoat",
-      "required": false
-    },
-    "PREFIX": {
-      "description": "Command prefix (e.g., ., !, #)",
-      "value": ".",
-      "required": false
-    },
-    "MODE": {
-      "description": "Bot mode: public or private",
-      "value": "public",
-      "required": false
-    },
-    "SUPPORT_GROUP": {
-      "description": "WhatsApp group invite link for support",
-      "value": "https://chat.whatsapp.com/JKF3XHbmKY47IQZc7d3LB2",
-      "required": false
     }
   },
   "formation": {
@@ -53,6 +23,6 @@
     }
   ],
   "scripts": {
-    "postdeploy": "echo Bot deployed successfully!"
+    "postdeploy": "echo Lite-Ollver-MD deployed successfully!"
   }
 }
