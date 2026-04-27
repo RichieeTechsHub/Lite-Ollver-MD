@@ -39,7 +39,7 @@
       <h3>🔐 STEP 02</h3>
       <h2>SESSION</h2>
       <p>Get your WhatsApp Session ID</p>
-      <a href="https://lite-ollver-session.onrender.com">
+      <a href="https://lite-ollver-session-39oe.onrender.com">
         <img src="https://img.shields.io/badge/GET%20SESSION-25D366?style=for-the-badge&logo=whatsapp&logoColor=white&color=25D366" alt="Get Session">
       </a>
     </td>

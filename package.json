@@ -3,17 +3,20 @@
   "version": "1.0.0",
   "description": "Lite-Ollver-MD WhatsApp Bot",
   "main": "index.js",
+  "type": "commonjs",
   "scripts": {
     "start": "node index.js",
-    "worker": "node index.js",
-    "web": "node server.js"
+    "railway:start": "node index.js"
   },
   "dependencies": {
-    "@whiskeysockets/baileys": "^6.7.9",
-    "express": "^4.18.2",
-    "pino": "^8.17.2",
-    "axios": "^1.6.7",
+    "@whiskeysockets/baileys": "6.7.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
     "fs-extra": "^11.2.0",
-    "dotenv": "^16.3.1"
+    "pino": "^8.19.0",
+    "qrcode-terminal": "^0.12.0"
+  },
+  "engines": {
+    "node": "18.x"
   }
 }

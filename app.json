@@ -1,23 +1,58 @@
 {
   "name": "Lite-Ollver-MD",
-  "description": "WhatsApp Bot",
-  "repository": "https://github.com/OllverM/D",
-  "logo": "https://raw.githubusercontent.com/OllverM/D/main/assets/logo.png",
-  "keywords": ["whatsapp", "bot", "baileys"],
+  "description": "Lite-Ollver-MD WhatsApp Bot with Web Dashboard",
+  "repository": "https://github.com/RichieeTechsHub/Lite-Ollver-MD",
+  "logo": "https://raw.githubusercontent.com/RichieeTechsHub/Lite-Ollver-MD/main/assets/logo.png",
+  "keywords": ["whatsapp", "bot", "baileys", "nodejs", "heroku"],
+  "stack": "heroku-22",
   "env": {
     "BOT_NAME": {
-      "description": "Your bot display name",
+      "description": "Name of your WhatsApp bot",
       "value": "Lite-Ollver-MD",
       "required": true
     },
     "SESSION_ID": {
-      "description": "Your WhatsApp session ID from generator",
+      "description": "Your full WhatsApp session ID (e.g., LITE-OLLVER-MD:~eyJjcmVkcyI6...)",
       "required": true
+    },
+    "OWNER_NUMBER": {
+      "description": "Your WhatsApp number (without + or spaces)",
+      "value": "254740479599",
+      "required": true
+    },
+    "OWNER_NAME": {
+      "description": "Your display name",
+      "value": "RichieeTheeGoat",
+      "required": false
+    },
+    "PREFIX": {
+      "description": "Command prefix (e.g., ., !, #)",
+      "value": ".",
+      "required": false
+    },
+    "MODE": {
+      "description": "Bot mode: public or private",
+      "value": "public",
+      "required": false
+    },
+    "SUPPORT_GROUP": {
+      "description": "WhatsApp group invite link for support",
+      "value": "https://chat.whatsapp.com/JKF3XHbmKY47IQZc7d3LB2",
+      "required": false
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
     }
   },
   "buildpacks": [
     {
       "url": "heroku/nodejs"
     }
-  ]
+  ],
+  "scripts": {
+    "postdeploy": "echo Bot deployed successfully!"
+  }
 }

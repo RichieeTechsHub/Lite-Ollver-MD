@@ -8,8 +8,8 @@ node_modules/
 
 # Session
 session/
-creds.json
 *.json
+!package.json
 
 # Logs
 *.log
@@ -20,8 +20,3 @@ temp/
 *.tmp
 .DS_Store
 Thumbs.db
-
-# Settings
-settings.json
-session.tar.gz
-session_base64.txt

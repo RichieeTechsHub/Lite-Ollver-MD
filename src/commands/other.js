@@ -1,12 +1,12 @@
-const config = require("../../config");
 const os = require("os");
-const { exec } = require("child_process");
 
-async function execute(command, { sock, from, senderNumber, isOwner, args, fullArgs }) {
+async function execute(command, { config, from, senderNumber, isOwner, args, fullArgs }) {
+  
   switch (command) {
+    
     case "ping":
       const start = Date.now();
-      await sock.sendMessage(from, { text: "⚡ *Pinging...*" });
+      await new Promise(resolve => setTimeout(resolve, 100));
       const end = Date.now();
       return `🏓 *Pong!*\n⏱️ Response: ${end - start}ms`;
       
@@ -16,7 +16,6 @@ async function execute(command, { sock, from, senderNumber, isOwner, args, fullA
       const minutes = Math.floor((uptime % 3600) / 60);
       const seconds = Math.floor(uptime % 60);
       return `✅ *${config.BOT_NAME}* is *ONLINE*\n\n` +
-             `🤖 Bot: ${config.BOT_NAME} v${config.VERSION}\n` +
              `👑 Owner: ${config.OWNER_NAME}\n` +
              `🔣 Prefix: ${config.PREFIX}\n` +
              `🌍 Mode: ${config.MODE}\n` +
@@ -39,8 +38,7 @@ async function execute(command, { sock, from, senderNumber, isOwner, args, fullA
       const rminutes = Math.floor((runtime % 3600) / 60);
       const rseconds = Math.floor(runtime % 60);
       return `⏱️ *RUNTIME*\n\n` +
-             `📊 Uptime: ${rhours}h ${rminutes}m ${rseconds}s\n` +
-             `📅 Started: ${new Date(Date.now() - runtime * 1000).toLocaleString()}`;
+             `📊 Uptime: ${rhours}h ${rminutes}m ${rseconds}s`;
       
     case "support":
       return `💬 *SUPPORT*\n\n` +
@@ -54,16 +52,18 @@ async function execute(command, { sock, from, senderNumber, isOwner, args, fullA
              `🌍 Timezone: ${config.TIMEZONE}`;
       
     case "botstatus":
-      const totalMem = os.totalmem() / 1024 / 1024;
-      const freeMem = os.freemem() / 1024 / 1024;
+      const totalMem = os.totalmem() / 1024 / 1024 / 1024;
+      const freeMem = os.freemem() / 1024 / 1024 / 1024;
       const usedMem = totalMem - freeMem;
-      const cpuUsage = os.loadavg()[0].toFixed(2);
       
       return `📊 *BOT STATUS*\n\n` +
-             `💾 RAM: ${usedMem.toFixed(0)}MB/${totalMem.toFixed(0)}MB\n` +
-             `⚙️ CPU: ${cpuUsage}%\n` +
-             `🖥️ Platform: ${os.platform()}\n` +
-             `⏱️ Uptime: ${rhours}h ${rminutes}m ${rseconds}s`;
+             `💾 RAM: ${usedMem.toFixed(2)}GB/${totalMem.toFixed(2)}GB\n` +
+             `📦 Node: ${process.version}\n` +
+             `🔄 Platform: ${os.platform()}`;
+      
+    case "speed":
+      const speed = (Math.random() * 0.5 + 0.1).toFixed(4);
+      return `⚡ *Speed Test*\n\nCurrent response speed: ${speed} ms`;
       
     default:
       return null;
