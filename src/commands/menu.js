@@ -27,12 +27,11 @@ function getSpeed() {
   return (Math.random() * 0.5 + 0.1).toFixed(4);
 }
 
-function buildMenu() {
+function buildMenu(context) {
   const ram = getRamUsage();
   const speed = getSpeed();
   const uptime = getUptime();
   
-  // You can update totalCommands dynamically by counting command files
   const commandsPath = path.join(__dirname, "../commands");
   let totalCommands = 0;
   try {
@@ -42,7 +41,7 @@ function buildMenu() {
   } catch(e) { totalCommands = 126; }
   
   return `╔══════════════════════════════════╗
-║     ⚡ LITE-OLLVER-MD ⚡         ║
+║     ⚡ ${context.BOT_NAME} ⚡         ║
 ║   WhatsApp Multi-Device Bot      ║
 ╚══════════════════════════════════╝
 
@@ -50,70 +49,38 @@ function buildMenu() {
 ┃           BOT INFO              ┃
 ┠────────────────────────────────┨
 ┃ 👑 Owner    : ${config.OWNER_NAME}
-┃ 🤖 Bot Name : ${config.BOT_NAME}
-┃ 🔣 Prefix   : [ ${config.PREFIX} ]
-┃ 🌍 Mode     : ${config.MODE}
+┃ 🤖 Bot Name : ${context.BOT_NAME}
+┃ 🔣 Prefix   : [ ${context.PREFIX} ]
 ┃ 📦 Plugins  : ${totalCommands}
 ┃ 🚀 Speed    : ${speed} ms
 ┃ ⏱️ Uptime   : ${uptime}
 ┃ 💾 RAM      : ${ram.used}GB/${ram.total}GB (${ram.percent}%)
-┃ 🌐 Host     : Heroku
 ┃ 📱 Number   : ${config.OWNER_NUMBER}
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
 ╔══════════════════════════════════╗
 ║         BASIC COMMANDS           ║
 ╠══════════════════════════════════╣
-║ ➤ ${config.PREFIX}ping    - Check bot response  ║
-║ ➤ ${config.PREFIX}alive   - Bot status          ║
-║ ➤ ${config.PREFIX}menu    - Show this menu      ║
-║ ➤ ${config.PREFIX}owner   - Owner info          ║
-║ ➤ ${config.PREFIX}repo    - GitHub repository   ║
-║ ➤ ${config.PREFIX}runtime - Bot uptime          ║
-║ ➤ ${config.PREFIX}support - Support group       ║
-║ ➤ ${config.PREFIX}time    - Current time        ║
+║ ➤ ${context.PREFIX}ping    - Check bot response  ║
+║ ➤ ${context.PREFIX}menu    - Show this menu      ║
+║ ➤ ${context.PREFIX}owner   - Owner info          ║
+║ ➤ ${context.PREFIX}runtime - Bot uptime          ║
 ╚══════════════════════════════════╝
 
 ╔══════════════════════════════════╗
 ║  Total Commands: ${totalCommands}               ║
-║  Type ${config.PREFIX}help <command> for usage  ║
-║  Support: ${config.SUPPORT_GROUP} ║
+║  Type ${context.PREFIX}help for more commands   ║
 ╚══════════════════════════════════╝`;
 }
 
-async function sendMenuWithLogo(sock, from, quotedMsg) {
-  try {
-    const logoPath = path.join(process.cwd(), "assets", "logo.png");
-    
-    if (fs.existsSync(logoPath)) {
-      const logoBuffer = fs.readFileSync(logoPath);
-      const menuText = buildMenu();
-      
-      await sock.sendMessage(from, {
-        image: logoBuffer,
-        caption: menuText
-      }, { quoted: quotedMsg });
-      
-      console.log("✅ Menu sent with logo");
-    } else {
-      await sock.sendMessage(from, { text: buildMenu() }, { quoted: quotedMsg });
-      console.log("✅ Menu sent (text only)");
-    }
-  } catch (error) {
-    console.error("❌ Error sending menu:", error);
-    await sock.sendMessage(from, { text: buildMenu() }, { quoted: quotedMsg });
-  }
-}
-
-// ========== ADD THIS FOR UNIVERSAL COMMAND LOADER ==========
 async function execute(sock, msg, args, context) {
-  await sendMenuWithLogo(sock, msg.key.remoteJid, msg);
+  const menuText = buildMenu(context);
+  await sock.sendMessage(msg.key.remoteJid, { text: menuText });
+  console.log("✅ Menu sent");
 }
 
 module.exports = {
   name: "menu",
-  description: "Show the main bot menu with logo",
-  execute,
-  buildMenu,
-  sendMenuWithLogo
+  description: "Show the main bot menu",
+  execute
 };
