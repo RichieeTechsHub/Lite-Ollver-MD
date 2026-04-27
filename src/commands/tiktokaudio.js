@@ -1,22 +1,41 @@
-async function execute(sock, msg, args) {
-  const input = args.join(" ");
+﻿const { getTikTokNoWatermark, downloadBuffer } = require("../lib/realDownloader");
 
-  if (!input && "tiktokaudio" !== "savestatus") {
+async function execute(sock, msg, args) {
+  const url = args[0];
+
+  if (!url || !url.includes("tiktok")) {
     return sock.sendMessage(msg.key.remoteJid, {
-      text: "❌ Usage: .tiktokaudio <tiktok link>"
+      text: "❌ Usage: .tiktokaudio TikTok link"
     });
   }
 
-  await sock.sendMessage(msg.key.remoteJid, {
-    text:
-      "🎵 TikTok audio downloader ready. Send TikTok URL.\n\n" +
-      (input ? "📌 Input: " + input + "\n\n" : "") +
-      "✅ Command is working. Downloader API integration comes next."
-  });
+  try {
+    await sock.sendMessage(msg.key.remoteJid, { text: "🎵 Downloading TikTok audio..." });
+
+    const data = await getTikTokNoWatermark(url);
+
+    if (!data.musicUrl) {
+      return sock.sendMessage(msg.key.remoteJid, {
+        text: "❌ No TikTok audio found."
+      });
+    }
+
+    const buffer = await downloadBuffer(data.musicUrl);
+
+    await sock.sendMessage(msg.key.remoteJid, {
+      audio: buffer,
+      mimetype: "audio/mpeg",
+      fileName: "tiktok-audio.mp3"
+    });
+  } catch (err) {
+    await sock.sendMessage(msg.key.remoteJid, {
+      text: "❌ TikTok audio failed: " + err.message
+    });
+  }
 }
 
 module.exports = {
   name: "tiktokaudio",
-  description: "🎵 TikTok audio downloader ready. Send TikTok URL.",
+  description: "Download TikTok audio",
   execute
 };

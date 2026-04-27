@@ -1,4 +1,9 @@
-﻿const { searchYouTube, isYouTubeUrl, ytdl } = require("../lib/youtubeClient");
+﻿const {
+  isYouTubeUrl,
+  searchYouTube,
+  streamToBuffer,
+  ytdl
+} = require("../lib/realDownloader");
 
 async function execute(sock, msg, args) {
   const query = args.join(" ");
@@ -9,35 +14,33 @@ async function execute(sock, msg, args) {
     });
   }
 
-  await sock.sendMessage(msg.key.remoteJid, { text: "🔎 Searching song..." });
-
   try {
-    const video = isYouTubeUrl(query) ? { url: query, title: "YouTube Audio" } : await searchYouTube(query);
+    await sock.sendMessage(msg.key.remoteJid, { text: "🔎 Searching audio..." });
+
+    const video = isYouTubeUrl(query)
+      ? { url: query, title: "YouTube Audio" }
+      : await searchYouTube(query);
 
     if (!video?.url) {
       return sock.sendMessage(msg.key.remoteJid, { text: "❌ Song not found." });
     }
 
     await sock.sendMessage(msg.key.remoteJid, {
-      text:
-        "🎧 *Downloading Audio...*\n\n" +
-        "Title: " + video.title + "\n" +
-        "URL: " + video.url
+      text: "🎧 Downloading audio...\n\n" + video.title
     });
 
     const stream = ytdl(video.url, {
       filter: "audioonly",
-      quality: "highestaudio"
+      quality: "highestaudio",
+      highWaterMark: 1 << 25
     });
 
-    const chunks = [];
-    for await (const chunk of stream) chunks.push(chunk);
-    const buffer = Buffer.concat(chunks);
+    const buffer = await streamToBuffer(stream);
 
     await sock.sendMessage(msg.key.remoteJid, {
       audio: buffer,
       mimetype: "audio/mpeg",
-      fileName: (video.title || "song") + ".mp3"
+      fileName: "Lite-Ollver-MD.mp3"
     });
   } catch (err) {
     await sock.sendMessage(msg.key.remoteJid, {
@@ -48,6 +51,6 @@ async function execute(sock, msg, args) {
 
 module.exports = {
   name: "song",
-  description: "Download YouTube song",
+  description: "Download YouTube audio",
   execute
 };

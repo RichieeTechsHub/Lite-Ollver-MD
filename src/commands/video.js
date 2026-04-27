@@ -1,4 +1,9 @@
-﻿const { searchYouTube, isYouTubeUrl, ytdl } = require("../lib/youtubeClient");
+﻿const {
+  isYouTubeUrl,
+  searchYouTube,
+  streamToBuffer,
+  ytdl
+} = require("../lib/realDownloader");
 
 async function execute(sock, msg, args) {
   const query = args.join(" ");
@@ -9,35 +14,33 @@ async function execute(sock, msg, args) {
     });
   }
 
-  await sock.sendMessage(msg.key.remoteJid, { text: "🔎 Searching video..." });
-
   try {
-    const video = isYouTubeUrl(query) ? { url: query, title: "YouTube Video" } : await searchYouTube(query);
+    await sock.sendMessage(msg.key.remoteJid, { text: "🔎 Searching video..." });
+
+    const video = isYouTubeUrl(query)
+      ? { url: query, title: "YouTube Video" }
+      : await searchYouTube(query);
 
     if (!video?.url) {
       return sock.sendMessage(msg.key.remoteJid, { text: "❌ Video not found." });
     }
 
     await sock.sendMessage(msg.key.remoteJid, {
-      text:
-        "🎥 *Downloading Video...*\n\n" +
-        "Title: " + video.title + "\n" +
-        "URL: " + video.url
+      text: "🎥 Downloading video...\n\n" + video.title
     });
 
     const stream = ytdl(video.url, {
       filter: "audioandvideo",
-      quality: "18"
+      quality: "18",
+      highWaterMark: 1 << 25
     });
 
-    const chunks = [];
-    for await (const chunk of stream) chunks.push(chunk);
-    const buffer = Buffer.concat(chunks);
+    const buffer = await streamToBuffer(stream);
 
     await sock.sendMessage(msg.key.remoteJid, {
       video: buffer,
       mimetype: "video/mp4",
-      caption: video.title || "Video"
+      caption: video.title || "Lite-Ollver-MD Video"
     });
   } catch (err) {
     await sock.sendMessage(msg.key.remoteJid, {

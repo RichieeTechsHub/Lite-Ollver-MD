@@ -1,22 +1,34 @@
-async function execute(sock, msg, args) {
-  const input = args.join(" ");
+﻿const { getTikTokNoWatermark, downloadBuffer } = require("../lib/realDownloader");
 
-  if (!input && "tiktok" !== "savestatus") {
+async function execute(sock, msg, args) {
+  const url = args[0];
+
+  if (!url || !url.includes("tiktok")) {
     return sock.sendMessage(msg.key.remoteJid, {
-      text: "❌ Usage: .tiktok <tiktok link>"
+      text: "❌ Usage: .tiktok TikTok link"
     });
   }
 
-  await sock.sendMessage(msg.key.remoteJid, {
-    text:
-      "🎬 TikTok downloader ready. Send TikTok URL.\n\n" +
-      (input ? "📌 Input: " + input + "\n\n" : "") +
-      "✅ Command is working. Downloader API integration comes next."
-  });
+  try {
+    await sock.sendMessage(msg.key.remoteJid, { text: "🎬 Downloading TikTok..." });
+
+    const data = await getTikTokNoWatermark(url);
+    const buffer = await downloadBuffer(data.videoUrl);
+
+    await sock.sendMessage(msg.key.remoteJid, {
+      video: buffer,
+      mimetype: "video/mp4",
+      caption: data.title || "TikTok video"
+    });
+  } catch (err) {
+    await sock.sendMessage(msg.key.remoteJid, {
+      text: "❌ TikTok download failed: " + err.message
+    });
+  }
 }
 
 module.exports = {
   name: "tiktok",
-  description: "🎬 TikTok downloader ready. Send TikTok URL.",
+  description: "Download TikTok video",
   execute
 };
