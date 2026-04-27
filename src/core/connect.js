@@ -27,6 +27,10 @@ let onlineInterval = null;
 
 const messageStore = new Map();
 
+function cleanNumber(value = "") {
+  return String(value).replace(/\D/g, "");
+}
+
 async function restoreSessionFromEnv() {
   if (!SESSION_ID) return false;
 
@@ -120,7 +124,13 @@ function getMessageText(msg) {
 
 function getSenderNumber(msg) {
   const jid = msg.key.participant || msg.key.remoteJid || "";
-  return jid.split("@")[0].split(":")[0];
+  return cleanNumber(jid.split("@")[0].split(":")[0]);
+}
+
+function isAllowedPrivateUser(sender, settings) {
+  const owner = cleanNumber(OWNER_NUMBER);
+  const sudoList = Array.isArray(settings.sudo) ? settings.sudo.map(cleanNumber) : [];
+  return sender === owner || sudoList.includes(sender);
 }
 
 async function sendStartupMessage(sock) {
@@ -155,8 +165,6 @@ async function startAlwaysOnline(sock) {
 
       if (settings.alwaysonline) {
         await sock.sendPresenceUpdate("available").catch(() => {});
-      } else {
-        await sock.sendPresenceUpdate("unavailable").catch(() => {});
       }
     } catch {}
   };
@@ -166,7 +174,11 @@ async function startAlwaysOnline(sock) {
 }
 
 async function handleAutoStatus(sock, msg, settings) {
-  if (msg.key.remoteJid !== "status@broadcast") return false;
+  const isStatus =
+    msg.key.remoteJid === "status@broadcast" ||
+    msg.key.participant === "status@broadcast";
+
+  if (!isStatus) return false;
 
   if (settings.autoviewstatus) {
     await sock.readMessages([msg.key]).catch(() => {});
@@ -174,14 +186,12 @@ async function handleAutoStatus(sock, msg, settings) {
   }
 
   if (settings.autoreactstatus) {
-    await sock
-      .sendMessage("status@broadcast", {
-        react: {
-          text: settings.setstatusemoji || "🔥",
-          key: msg.key,
-        },
-      })
-      .catch(() => {});
+    await sock.sendMessage("status@broadcast", {
+      react: {
+        text: settings.setstatusemoji || "🔥",
+        key: msg.key,
+      },
+    }).catch(() => {});
 
     console.log("🔥 Auto reacted to status");
   }
@@ -285,27 +295,19 @@ async function connect() {
         return;
       }
 
-      if (settings.autoread) {
-        await sock.readMessages([msg.key]).catch(() => {});
-      }
-
-      if (settings.autotype) {
-        await sock.sendPresenceUpdate("composing", msg.key.remoteJid).catch(() => {});
-      }
-
+      if (settings.autoread) await sock.readMessages([msg.key]).catch(() => {});
+      if (settings.autotype) await sock.sendPresenceUpdate("composing", msg.key.remoteJid).catch(() => {});
       if (settings.autorecord || settings.autorecordtyping) {
         await sock.sendPresenceUpdate("recording", msg.key.remoteJid).catch(() => {});
       }
 
       if (settings.autoreact && !msg.key.fromMe) {
-        await sock
-          .sendMessage(msg.key.remoteJid, {
-            react: {
-              text: settings.setstatusemoji || "✅",
-              key: msg.key,
-            },
-          })
-          .catch(() => {});
+        await sock.sendMessage(msg.key.remoteJid, {
+          react: {
+            text: settings.setstatusemoji || "✅",
+            key: msg.key,
+          },
+        }).catch(() => {});
       }
 
       const stopped = await handleAutoModeration(sock, msg);
@@ -313,14 +315,13 @@ async function connect() {
 
       const prefix = settings.prefix || DEFAULT_PREFIX;
       const mode = settings.mode || "public";
-
       const text = getMessageText(msg.message).trim();
+
       if (!text.startsWith(prefix)) return;
 
       const sender = getSenderNumber(msg);
-      const isOwner = sender === OWNER_NUMBER;
 
-      if (mode === "private" && !isOwner) {
+      if (mode === "private" && !isAllowedPrivateUser(sender, settings)) {
         return sock.sendMessage(msg.key.remoteJid, {
           text: "🔒 Bot is currently in private mode.",
         });
@@ -328,7 +329,6 @@ async function connect() {
 
       const args = text.slice(prefix.length).trim().split(/ +/).filter(Boolean);
       const cmdName = args.shift()?.toLowerCase();
-
       if (!cmdName) return;
 
       console.log("📌 Command:", cmdName);
