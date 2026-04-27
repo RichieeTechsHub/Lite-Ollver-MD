@@ -1,6 +1,6 @@
 {
   "name": "Lite-Ollver-MD",
-  "description": "WhatsApp Bot with 126+ commands",
+  "description": "WhatsApp Bot with session restore from env",
   "repository": "https://github.com/RichieeTechsHub/Lite-Ollver-MD",
   "logo": "https://raw.githubusercontent.com/RichieeTechsHub/Lite-Ollver-MD/main/assets/logo.png",
   "keywords": ["whatsapp", "bot", "baileys", "nodejs"],
@@ -12,15 +12,26 @@
       "required": true
     },
     "SESSION_ID": {
-      "description": "Your WhatsApp session ID from https://lite-ollver-session.onrender.com",
+      "description": "Your full session ID (including prefix like LITE-OLLVER-MD:~...)",
       "required": true
+    },
+    "OWNER_NUMBER": {
+      "description": "Your WhatsApp number (without +)",
+      "value": "254740479599",
+      "required": true
+    },
+    "PREFIX": {
+      "description": "Command prefix",
+      "value": ".",
+      "required": false
+    },
+    "MODE": {
+      "description": "public or private",
+      "value": "public",
+      "required": false
     }
   },
   "formation": {
-    "web": {
-      "quantity": 1,
-      "size": "basic"
-    },
     "worker": {
       "quantity": 1,
       "size": "basic"
