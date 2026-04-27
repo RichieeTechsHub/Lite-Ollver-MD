@@ -1,3 +1,5 @@
+const { askGemini } = require("../lib/aiClient");
+
 async function execute(sock, msg, args) {
   const input = args.join(" ");
 
@@ -8,12 +10,18 @@ async function execute(sock, msg, args) {
   }
 
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "🤖 *deepseek*\n\n" + input + "\n\n✅ AI command is active. API logic will be connected next."
+    text: "🤖 Thinking..."
+  });
+
+  const reply = await askGemini(input, "Think deeply and give a logical answer.");
+
+  await sock.sendMessage(msg.key.remoteJid, {
+    text: reply
   });
 }
 
 module.exports = {
   name: "deepseek",
-  description: "Deep reasoning assistant",
+  description: "Think deeply and give a logical answer.",
   execute
 };
