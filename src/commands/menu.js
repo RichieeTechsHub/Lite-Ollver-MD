@@ -36,7 +36,7 @@ const MENU_CATEGORIES = {
   "SETTINGS MENU": ["addbadword","addcountrycode","addignorelist","addsudo","alwaysonline","antibug","anticall","antidelete","antideletestatus","antiedit","antiviewonce","autobio","autoblock","autoreact","autoreactstatus","autoread","autorecord","autorecordtyping","autotype","autoviewstatus","chatbot","delanticallmsg","delcountrycode","deletebadword","delgoodbye","delignorelist","delsudo","delwelcome","getsettings","listcountrycode","listwarn","mode","resetsetting","resetwarn","setanticallmsg","setbotname","setcontextlink","setfont","setgoodbye","setmenu","setmenuimage","setownername","setownernumber","setprefix","setstatusemoji","setstickerauthor","setstickerpackname","settimezone","setwarn","setwatermark","setwelcome","showanticallmsg","showgoodbye","showwelcome","statusdelay","statussettings","testanticallmsg","testgoodbye","testwelcome"],
   "SPORTS MENU": ["eplmatches","eplstandings","clmatches","wwenews"],
   "SUPPORT MENU": ["feedback","helpers"],
-  "TOOLS MENU": ["browse","calculate","device","emojimix","fancy","filtervcf","fliptext","genpass","getabout","getpp","gsmarena","obfuscate","qrcode","runeval","say","ssweb","sswebpc","sswebtab","sticker","take","texttopdf","tinyurl","toimage","tourl","vcc"],
+  "TOOLS MENU": ["browse","calculate","device","emojimix","fancy","filtervcf","fliptext","genpass","getabout","getpp","gsmarena","obfuscate","qrcode","runeval","say","ssweb","sswebpc","sswebtab","sticker","take","mystickers","sendsticker","delsticker","texttopdf","tinyurl","toimage","tourl","vcc"],
   "TRANSLATE MENU": ["translate"],
   "VIDEO MENU": ["toaudio","tovideo","volvideo"],
 };
