@@ -1,22 +1,22 @@
-async function execute(sock, msg, args) {
-  const input = args.join(" ");
+﻿async function execute(sock, msg, args) {
+  const query = args.join(" ");
 
-  if (!input && "pin" !== "savestatus") {
+  if (!query) {
     return sock.sendMessage(msg.key.remoteJid, {
       text: "❌ Usage: .pin cars"
     });
   }
 
+  const url = "https://source.unsplash.com/900x900/?" + encodeURIComponent(query + " pinterest");
+
   await sock.sendMessage(msg.key.remoteJid, {
-    text:
-      "📌 Pinterest search ready. Send search term.\n\n" +
-      (input ? "📌 Input: " + input + "\n\n" : "") +
-      "✅ Command is working. Downloader API integration comes next."
+    image: { url },
+    caption: "📌 Pinterest-style image for: " + query
   });
 }
 
 module.exports = {
   name: "pin",
-  description: "📌 Pinterest search ready. Send search term.",
+  description: "Pinterest image search",
   execute
 };

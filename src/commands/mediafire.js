@@ -1,22 +1,31 @@
-async function execute(sock, msg, args) {
-  const input = args.join(" ");
+﻿const { mediafire } = require("../lib/fileDownloaders");
 
-  if (!input && "mediafire" !== "savestatus") {
+async function execute(sock, msg, args) {
+  const url = args[0];
+
+  if (!url || !url.includes("mediafire.com")) {
     return sock.sendMessage(msg.key.remoteJid, {
-      text: "❌ Usage: .mediafire <mediafire link>"
+      text: "❌ Usage: .mediafire MediaFire link"
     });
   }
 
-  await sock.sendMessage(msg.key.remoteJid, {
-    text:
-      "🔥 MediaFire downloader ready. Send MediaFire link.\n\n" +
-      (input ? "📌 Input: " + input + "\n\n" : "") +
-      "✅ Command is working. Downloader API integration comes next."
-  });
+  try {
+    await sock.sendMessage(msg.key.remoteJid, { text: "🔥 Fetching MediaFire file..." });
+
+    const direct = await mediafire(url);
+
+    await sock.sendMessage(msg.key.remoteJid, {
+      text: "✅ MediaFire direct link:\n\n" + direct
+    });
+  } catch (err) {
+    await sock.sendMessage(msg.key.remoteJid, {
+      text: "❌ MediaFire failed: " + err.message
+    });
+  }
 }
 
 module.exports = {
   name: "mediafire",
-  description: "🔥 MediaFire downloader ready. Send MediaFire link.",
+  description: "Get MediaFire direct link",
   execute
 };

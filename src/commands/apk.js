@@ -1,22 +1,41 @@
-async function execute(sock, msg, args) {
-  const input = args.join(" ");
+﻿const axios = require("axios");
 
-  if (!input && "apk" !== "savestatus") {
+async function execute(sock, msg, args) {
+  const query = args.join(" ");
+
+  if (!query) {
     return sock.sendMessage(msg.key.remoteJid, {
       text: "❌ Usage: .apk whatsapp"
     });
   }
 
-  await sock.sendMessage(msg.key.remoteJid, {
-    text:
-      "📦 APK search received. Send app name after .apk\n\n" +
-      (input ? "📌 Input: " + input + "\n\n" : "") +
-      "✅ Command is working. Downloader API integration comes next."
-  });
+  try {
+    const url = "https://ws75.aptoide.com/api/7/apps/search/query=" + encodeURIComponent(query) + "/limit=1";
+    const { data } = await axios.get(url);
+
+    const app = data?.datalist?.list?.[0];
+
+    if (!app) {
+      return sock.sendMessage(msg.key.remoteJid, { text: "❌ APK not found." });
+    }
+
+    await sock.sendMessage(msg.key.remoteJid, {
+      text:
+        "📦 *APK FOUND*\n\n" +
+        "Name: " + app.name + "\n" +
+        "Package: " + app.package + "\n" +
+        "Version: " + app.file?.vername + "\n\n" +
+        "Download:\n" + app.file?.path
+    });
+  } catch (err) {
+    await sock.sendMessage(msg.key.remoteJid, {
+      text: "❌ APK search failed."
+    });
+  }
 }
 
 module.exports = {
   name: "apk",
-  description: "📦 APK search received. Send app name after .apk",
+  description: "Search APK",
   execute
 };
