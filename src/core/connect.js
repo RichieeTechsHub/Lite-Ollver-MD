@@ -1,4 +1,4 @@
-﻿require("dotenv").config();
+require("dotenv").config();
 
 const {
   default: makeWASocket,
@@ -35,7 +35,9 @@ async function restoreSessionFromEnv() {
     const sessionData = JSON.parse(Buffer.from(base64Data, "base64").toString("utf-8"));
     await fs.ensureDir(AUTH_DIR);
 
-    if (sessionData.creds) await fs.writeJson(path.join(AUTH_DIR, "creds.json"), sessionData.creds);
+    if (sessionData.creds) {
+      await fs.writeJson(path.join(AUTH_DIR, "creds.json"), sessionData.creds);
+    }
 
     for (const [key, value] of Object.entries(sessionData)) {
       if (key !== "creds" && typeof value === "object") {
@@ -100,6 +102,32 @@ async function deleteMessage(sock, msg) {
   try {
     await sock.sendMessage(msg.key.remoteJid, { delete: msg.key });
   } catch {}
+}
+
+async function handleAutoStatus(sock, msg, settings) {
+  if (msg.key.remoteJid !== "status@broadcast") return false;
+
+  if (settings.autoviewstatus) {
+    await sock.readMessages([msg.key]).catch(() => {});
+    console.log("👁️ Auto viewed status");
+  }
+
+  if (settings.autoreactstatus) {
+    const emoji = settings.setstatusemoji || "🔥";
+
+    await sock
+      .sendMessage("status@broadcast", {
+        react: {
+          text: emoji,
+          key: msg.key,
+        },
+      })
+      .catch(() => {});
+
+    console.log("🔥 Auto reacted to status");
+  }
+
+  return true;
 }
 
 async function handleAutoModeration(sock, msg) {
@@ -195,10 +223,26 @@ async function connect() {
       const msg = messages[0];
       if (!msg?.message) return;
 
+      const settings = await readSettings();
+
+      const statusHandled = await handleAutoStatus(sock, msg, settings);
+      if (statusHandled) return;
+
+      if (settings.autoread) {
+        await sock.readMessages([msg.key]).catch(() => {});
+      }
+
+      if (settings.autotype) {
+        await sock.sendPresenceUpdate("composing", msg.key.remoteJid).catch(() => {});
+      }
+
+      if (settings.autorecord || settings.autorecordtyping) {
+        await sock.sendPresenceUpdate("recording", msg.key.remoteJid).catch(() => {});
+      }
+
       const stopped = await handleAutoModeration(sock, msg);
       if (stopped) return;
 
-      const settings = await readSettings();
       const prefix = settings.prefix || DEFAULT_PREFIX;
       const mode = settings.mode || "public";
 
