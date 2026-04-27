@@ -1,4 +1,4 @@
-const fs = require("fs");
+﻿const fs = require("fs");
 const path = require("path");
 const os = require("os");
 
@@ -30,7 +30,7 @@ const MENU_CATEGORIES = {
   "GROUPSTATUS MENU": ["fetchgroups","tosgroup"],
   "IMAGE MENU": ["remini","wallpaper"],
   "OTHER MENU": ["botstatus","pair","ping","ping2","repo","runtime","time"],
-  "OWNER MENU": ["owner","block","unblock","join","leave","restart","update","setbio","setprofilepic","react"],
+  "OWNER MENU": ["owner","block","unblock","join","leave","restart","update","setbio","setprofilepic","react","vv"],
   "RELIGION MENU": ["bible","quran"],
   "SEARCH MENU": ["define","define2","imdb","lyrics","shazam","weather","yts"],
   "SETTINGS MENU": ["addbadword","addcountrycode","addignorelist","addsudo","alwaysonline","antibug","anticall","antidelete","antideletestatus","antiedit","antiviewonce","autobio","autoblock","autoreact","autoreactstatus","autoread","autorecord","autorecordtyping","autotype","autoviewstatus","chatbot","delanticallmsg","delcountrycode","deletebadword","delgoodbye","delignorelist","delsudo","delwelcome","getsettings","listcountrycode","listwarn","mode","resetsetting","resetwarn","setanticallmsg","setbotname","setcontextlink","setfont","setgoodbye","setmenu","setmenuimage","setownername","setownernumber","setprefix","setstatusemoji","setstickerauthor","setstickerpackname","settimezone","setwarn","setwatermark","setwelcome","showanticallmsg","showgoodbye","showwelcome","statusdelay","statussettings","testanticallmsg","testgoodbye","testwelcome"],
@@ -52,7 +52,7 @@ function getRam() {
   const used = total - free;
   const percent = Math.round((used / total) * 100);
   const filled = Math.min(10, Math.max(0, Math.round(percent / 10)));
-  const bar = "█".repeat(filled) + "░".repeat(10 - filled);
+  const bar = "â–ˆ".repeat(filled) + "â–‘".repeat(10 - filled);
 
   return {
     used: Math.round(used / 1024 / 1024),
@@ -70,16 +70,16 @@ function countCommands() {
   return Object.values(MENU_CATEGORIES).flat().length;
 }
 
-// ✅ FIXED (NO PREFIX IN COMMAND LIST)
+// âœ… FIXED (NO PREFIX IN COMMAND LIST)
 function buildCategory(title, cmds) {
-  const line = "━━━━━━━━━━━━";
-  let text = `╭─❍ ${title}\n`;
+  const line = "â”â”â”â”â”â”â”â”â”â”â”â”";
+  let text = `â•­â”€â ${title}\n`;
 
   cmds.forEach((c) => {
-    text += `│◦ ${c}\n`;
+    text += `â”‚â—¦ ${c}\n`;
   });
 
-  text += `╰${line}`;
+  text += `â•°${line}`;
   return text;
 }
 
@@ -87,20 +87,20 @@ function buildMenu(ctx) {
   const owner = config.OWNER_NAME || "RichieeTheeGoat";
   const prefix = ctx.PREFIX || ".";
   const ram = getRam();
-  const line = "━━━━━━━━━━━━";
+  const line = "â”â”â”â”â”â”â”â”â”â”â”â”";
 
-  const header = `╭─❍ ${ctx.BOT_NAME || "Lite-Ollver-MD"}
-│ owner  : ${owner}
-│ prefix : ${prefix}
-│ host   : ${HOST}
-│ cmds   : ${countCommands()}
-│ mode   : ${ctx.MODE || MODE}
-│ ver    : ${VERSION}
-│ speed  : ${getSpeed()} ms
-│ uptime : ${getUptime()}
-│ usage  : ${ram.used} MB / ${ram.total} GB
-│ ram    : [${ram.bar}] ${ram.percent}%
-╰${line}`;
+  const header = `â•­â”€â ${ctx.BOT_NAME || "Lite-Ollver-MD"}
+â”‚ owner  : ${owner}
+â”‚ prefix : ${prefix}
+â”‚ host   : ${HOST}
+â”‚ cmds   : ${countCommands()}
+â”‚ mode   : ${ctx.MODE || MODE}
+â”‚ ver    : ${VERSION}
+â”‚ speed  : ${getSpeed()} ms
+â”‚ uptime : ${getUptime()}
+â”‚ usage  : ${ram.used} MB / ${ram.total} GB
+â”‚ ram    : [${ram.bar}] ${ram.percent}%
+â•°${line}`;
 
   const body = Object.entries(MENU_CATEGORIES)
     .map(([t, c]) => buildCategory(t, c))

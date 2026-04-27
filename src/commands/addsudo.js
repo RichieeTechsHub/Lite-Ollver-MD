@@ -1,26 +1,32 @@
-const { readSettings, writeSettings } = require("../lib/botSettings");
+﻿const { addSudo, cleanNumber } = require("../lib/adminAccess");
 
-async function execute(sock, msg, args) {
-  const value = args.join(" ");
+async function execute(sock, msg, args, ctx) {
+  const sender = cleanNumber(msg.key.participant || msg.key.remoteJid);
+  const owner = cleanNumber(ctx.OWNER_NUMBER);
 
-  if (!value) {
+  if (sender !== owner) {
     return sock.sendMessage(msg.key.remoteJid, {
-      text: "❌ Usage: .addsudo value"
+      text: "❌ Owner only command."
     });
   }
 
-  const settings = await readSettings();
-  if (!Array.isArray(settings["addsudo"])) settings["addsudo"] = [];
-  settings["addsudo"].push(value);
-  await writeSettings(settings);
+  const number = cleanNumber(args[0] || "");
+
+  if (!number) {
+    return sock.sendMessage(msg.key.remoteJid, {
+      text: "❌ Usage: .addsudo 2547xxxxxxx"
+    });
+  }
+
+  await addSudo(number);
 
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ Added to *addsudo*:\n" + value
+    text: "✅ Sudo user added:\n+" + number
   });
 }
 
 module.exports = {
   name: "addsudo",
-  description: "addsudo add command",
+  description: "Add sudo user",
   execute
 };
