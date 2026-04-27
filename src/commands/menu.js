@@ -30,7 +30,7 @@ const MENU_CATEGORIES = {
   "GROUPSTATUS MENU": ["fetchgroups","tosgroup"],
   "IMAGE MENU": ["remini","wallpaper"],
   "OTHER MENU": ["botstatus","pair","ping","ping2","repo","runtime","time"],
-  "OWNER MENU": ["owner","block","unblock","join","leave","restart","update","setbio","setprofilepic","react","vv"],
+  "OWNER MENU": ["owner","addowner","block","unblock","join","leave","restart","update","setbio","setprofilepic","react","vv"],
   "RELIGION MENU": ["bible","quran"],
   "SEARCH MENU": ["define","define2","imdb","lyrics","shazam","weather","yts"],
   "SETTINGS MENU": ["addbadword","addcountrycode","addignorelist","addsudo","alwaysonline","antibug","anticall","antidelete","antideletestatus","antiedit","antiviewonce","autobio","autoblock","autoreact","autoreactstatus","autoread","autorecord","autorecordtyping","autotype","autoviewstatus","chatbot","delanticallmsg","delcountrycode","deletebadword","delgoodbye","delignorelist","delsudo","delwelcome","getsettings","listcountrycode","listwarn","mode","resetsetting","resetwarn","setanticallmsg","setbotname","setcontextlink","setfont","setgoodbye","setmenu","setmenuimage","setownername","setownernumber","setprefix","setstatusemoji","setstickerauthor","setstickerpackname","settimezone","setwarn","setwatermark","setwelcome","showanticallmsg","showgoodbye","showwelcome","statusdelay","statussettings","testanticallmsg","testgoodbye","testwelcome"],
