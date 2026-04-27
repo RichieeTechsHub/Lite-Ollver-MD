@@ -1,6 +1,4 @@
 const os = require("os");
-const fs = require("fs");
-const path = require("path");
 
 function safeConfig() {
   try {
@@ -17,7 +15,6 @@ function getUptime() {
   const hours = Math.floor(uptime / 3600);
   const minutes = Math.floor((uptime % 3600) / 60);
   const seconds = Math.floor(uptime % 60);
-
   return `${hours}h ${minutes}m ${seconds}s`;
 }
 
@@ -34,30 +31,24 @@ function getRamUsage() {
   };
 }
 
-function getSpeed() {
-  return (Math.random() * 0.5 + 0.1).toFixed(4);
-}
-
-function countCommands() {
-  const commandsPath = path.join(__dirname);
-
-  try {
-    if (!fs.existsSync(commandsPath)) return 0;
-
-    return fs.readdirSync(commandsPath).filter((file) => file.endsWith(".js")).length;
-  } catch {
-    return 0;
-  }
-}
-
 function buildMenu(context) {
   const ram = getRamUsage();
-  const speed = getSpeed();
   const uptime = getUptime();
 
-  const totalCommands = context.COMMANDS_COUNT || countCommands();
+  const commandNames = Array.isArray(context.COMMAND_NAMES)
+    ? context.COMMAND_NAMES
+    : [];
+
+  const totalCommands = context.COMMANDS_COUNT || commandNames.length || 0;
   const ownerName = config.OWNER_NAME || "RichieeTheeGoat";
   const ownerNumber = config.OWNER_NUMBER || context.OWNER_NUMBER || "254740479599";
+
+  const commandList = commandNames.length
+    ? commandNames
+        .sort()
+        .map((cmd) => `║ ➤ ${context.PREFIX}${cmd}`)
+        .join("\n")
+    : `║ ➤ ${context.PREFIX}menu\n║ ➤ ${context.PREFIX}owner`;
 
   return `╔══════════════════════════════════╗
 ║       ⚡ ${context.BOT_NAME} ⚡
@@ -71,23 +62,18 @@ function buildMenu(context) {
 ┃ 🤖 Bot     : ${context.BOT_NAME}
 ┃ 🔣 Prefix  : ${context.PREFIX}
 ┃ 📦 Plugins : ${totalCommands}
-┃ 🚀 Speed   : ${speed} ms
 ┃ ⏱️ Uptime  : ${uptime}
 ┃ 💾 RAM     : ${ram.used}GB/${ram.total}GB (${ram.percent}%)
 ┃ 📱 Number  : ${ownerNumber}
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
 ╔══════════════════════════════════╗
-║          BASIC COMMANDS
+║        AVAILABLE COMMANDS
 ╠══════════════════════════════════╣
-║ ➤ ${context.PREFIX}ping
-║ ➤ ${context.PREFIX}menu
-║ ➤ ${context.PREFIX}owner
-║ ➤ ${context.PREFIX}runtime
+${commandList}
 ╚══════════════════════════════════╝
 
-📌 Total Commands: ${totalCommands}
-💡 Type *${context.PREFIX}help* for more commands.`;
+📌 Total Commands: ${totalCommands}`;
 }
 
 async function execute(sock, msg, args, context) {
