@@ -16,8 +16,9 @@ const VERSION = "1.9.4";
 const MODE = process.env.MODE || "Public";
 const HOST = process.env.HOST_NAME || "Heroku";
 
-const LOGO_PATH = path.join(__dirname, "..", "assets", "menu.jpg");
-const FALLBACK_LOGO = process.env.MENU_LOGO_URL || "https://i.ibb.co/5R9kHkH/bot-logo.jpg";
+const LOGO_PATH = path.join(__dirname, "..", "..", "assets", "logo.png");
+const FALLBACK_LOGO =
+  process.env.MENU_LOGO_URL || "https://i.ibb.co/5R9kHkH/bot-logo.jpg";
 
 const MENU_CATEGORIES = {
   "AI MENU": ["analyze","blackbox","code","dalle","deepseek","doppleai","gemini","generate","gpt","programming","recipe","story","summarize","teach","translate2"],
@@ -70,17 +71,14 @@ function countCommands() {
 }
 
 function buildCategory(title, cmds, prefix) {
-  const line = "━━━━━━━━━━━━━━━━━━━━━━";
-  let text = `┏▣ ${line}
-┃ ◈ ${title} ◈
-┣▣ ${line}
-`;
+  const line = "━━━━━━━━━━━━";
+  let text = `╭─❍ ${title}\n`;
 
   cmds.forEach((c) => {
-    text += `┃ ➤ ${prefix}${c}\n`;
+    text += `│◦ ${prefix}${c}\n`;
   });
 
-  text += `┗▣ ${line}`;
+  text += `╰${line}`;
   return text;
 }
 
@@ -88,22 +86,20 @@ function buildMenu(ctx) {
   const owner = config.OWNER_NAME || "RichieeTheeGoat";
   const prefix = ctx.PREFIX || ".";
   const ram = getRam();
-  const line = "━━━━━━━━━━━━━━━━━━━━━━";
+  const line = "━━━━━━━━━━━━";
 
-  const header = `┏▣ ${line}
-┃ ◈ ${ctx.BOT_NAME || "Lite-Ollver-MD"} ◈
-┣▣ ${line}
-┃ ᴏᴡɴᴇʀ   : ${owner}
-┃ ᴘʀᴇғɪx  : [ ${prefix} ]
-┃ ʜᴏsᴛ    : ${HOST}
-┃ ᴘʟᴜɢɪɴs : ${countCommands()}
-┃ ᴍᴏᴅᴇ    : ${ctx.MODE || MODE}
-┃ ᴠᴇʀsɪᴏɴ : ${VERSION}
-┃ sᴘᴇᴇᴅ   : ${getSpeed()} ms
-┃ ᴜᴘᴛɪᴍᴇ  : ${getUptime()}
-┃ ᴜsᴀɢᴇ   : ${ram.used} MB / ${ram.total} GB
-┃ ʀᴀᴍ     : [${ram.bar}] ${ram.percent}%
-┗▣ ${line}`;
+  const header = `╭─❍ ${ctx.BOT_NAME || "Lite-Ollver-MD"}
+│ owner  : ${owner}
+│ prefix : ${prefix}
+│ host   : ${HOST}
+│ cmds   : ${countCommands()}
+│ mode   : ${ctx.MODE || MODE}
+│ ver    : ${VERSION}
+│ speed  : ${getSpeed()} ms
+│ uptime : ${getUptime()}
+│ usage  : ${ram.used} MB / ${ram.total} GB
+│ ram    : [${ram.bar}] ${ram.percent}%
+╰${line}`;
 
   const body = Object.entries(MENU_CATEGORIES)
     .map(([t, c]) => buildCategory(t, c, prefix))
@@ -113,7 +109,7 @@ function buildMenu(ctx) {
 
 ${body}
 
-> ${ctx.BOT_NAME || "Lite-Ollver-MD"} • Clean MD Bot`;
+> ${ctx.BOT_NAME || "Lite-Ollver-MD"}`;
 }
 
 function getMenuImage() {
@@ -141,6 +137,6 @@ async function execute(sock, msg, args, ctx) {
 
 module.exports = {
   name: "menu",
-  description: "Show clean full menu with logo",
+  description: "Show slim menu with logo",
   execute,
 };
