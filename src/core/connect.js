@@ -16,6 +16,7 @@ const BOT_NAME = process.env.BOT_NAME || "Lite-Ollver-MD";
 const PREFIX = process.env.PREFIX || ".";
 const OWNER_NUMBER = process.env.OWNER_NUMBER || "254740479599";
 const SESSION_ID = process.env.SESSION_ID || "";
+
 const AUTH_DIR = path.join(__dirname, "../auth_info");
 
 let commands = new Map();
@@ -42,16 +43,16 @@ async function restoreSessionFromEnv() {
     }
 
     for (const [key, value] of Object.entries(sessionData)) {
-      if (key !== "creds" && typeof value === "object" && value !== null) {
+      if (key !== "creds" && typeof value === "object") {
         await fs.writeJson(path.join(AUTH_DIR, `${key}.json`), value, { spaces: 2 });
         console.log(`✅ ${key}.json restored`);
       }
     }
 
-    console.log("✅ Session restored successfully from SESSION_ID");
+    console.log("✅ Session restored successfully");
     return true;
   } catch (err) {
-    console.error("❌ Failed to restore SESSION_ID:", err.message);
+    console.error("❌ Session restore failed:", err.message);
     return false;
   }
 }
@@ -61,12 +62,9 @@ async function loadCommands() {
 
   const commandsPath = path.join(__dirname, "../commands");
 
-  if (!fs.existsSync(commandsPath)) {
-    console.warn("⚠️ Commands folder not found:", commandsPath);
-    return;
-  }
+  if (!fs.existsSync(commandsPath)) return;
 
-  const files = fs.readdirSync(commandsPath).filter((file) => file.endsWith(".js"));
+  const files = fs.readdirSync(commandsPath).filter((f) => f.endsWith(".js"));
 
   for (const file of files) {
     try {
@@ -74,6 +72,7 @@ async function loadCommands() {
       delete require.cache[require.resolve(fullPath)];
 
       const cmd = require(fullPath);
+
       let name = path.basename(file, ".js");
       let fn = null;
 
@@ -81,44 +80,26 @@ async function loadCommands() {
       else if (typeof cmd.execute === "function") {
         fn = cmd.execute;
         name = cmd.name || name;
-      } else if (typeof cmd.run === "function") {
-        fn = cmd.run;
-        name = cmd.name || name;
       }
 
       if (fn) {
         commands.set(name.toLowerCase(), fn);
         console.log(`✅ Loaded command: ${name}`);
       }
-    } catch (err) {
-      console.error(`❌ Error loading command ${file}:`, err.message);
+    } catch (e) {
+      console.log("❌ Command load error:", e.message);
     }
   }
 
-  console.log(`📦 Total commands loaded: ${commands.size}`);
+  console.log(`📦 Total commands: ${commands.size}`);
 }
 
-function unwrapMessage(message) {
-  if (!message) return null;
-  if (message.ephemeralMessage?.message) return unwrapMessage(message.ephemeralMessage.message);
-  if (message.viewOnceMessage?.message) return unwrapMessage(message.viewOnceMessage.message);
-  if (message.viewOnceMessageV2?.message) return unwrapMessage(message.viewOnceMessageV2.message);
-  if (message.documentWithCaptionMessage?.message) return unwrapMessage(message.documentWithCaptionMessage.message);
-  return message;
-}
-
-function getMessageText(message) {
-  const m = unwrapMessage(message);
-  if (!m) return "";
-
+function getMessageText(msg) {
   return (
-    m.conversation ||
-    m.extendedTextMessage?.text ||
-    m.imageMessage?.caption ||
-    m.videoMessage?.caption ||
-    m.buttonsResponseMessage?.selectedButtonId ||
-    m.listResponseMessage?.singleSelectReply?.selectedRowId ||
-    m.templateButtonReplyMessage?.selectedId ||
+    msg.conversation ||
+    msg.extendedTextMessage?.text ||
+    msg.imageMessage?.caption ||
+    msg.videoMessage?.caption ||
     ""
   );
 }
@@ -131,22 +112,20 @@ async function sendStartupMessage(sock) {
 
     await sock.sendMessage(botJid, {
       text:
-        `🤖 *${BOT_NAME}* is now ONLINE! ✅\n\n` +
+        `🤖 *${BOT_NAME}* is ONLINE\n\n` +
         `⚡ Prefix: ${PREFIX}\n` +
-        `📦 Commands: ${commands.size}\n\n` +
-        `📱 Host Number: ${botJid.split("@")[0]}`,
+        `📦 Commands: ${commands.size}`,
     });
 
     startupSent = true;
-    console.log("📨 Startup message sent to bot host number");
-  } catch (err) {
-    console.log("⚠️ Could not send startup message:", err.message);
+    console.log("📨 Startup message sent");
+  } catch (e) {
+    console.log("⚠️ Startup message failed");
   }
 }
 
 async function connect() {
   if (isConnecting) return;
-
   isConnecting = true;
 
   await restoreSessionFromEnv();
@@ -160,90 +139,29 @@ async function connect() {
     auth: state,
     printQRInTerminal: true,
     logger: Pino({ level: "silent" }),
+
     browser: ["Ubuntu", "Chrome", "20.0.04"],
+
     markOnlineOnConnect: false,
-    syncFullHistory: false,
+    syncFullHistory: true,
     emitOwnEvents: true,
     fireInitQueries: true,
-    generateHighQualityLinkPreview: false,
+
     connectTimeoutMs: 60000,
-    defaultQueryTimeoutMs: 60000,
     keepAliveIntervalMs: 30000,
   });
 
   sock.ev.on("creds.update", saveCreds);
 
-  sock.ev.on("messages.upsert", async ({ messages, type }) => {
-    console.log(`📥 messages.upsert fired. Type: ${type}, Count: ${messages?.length || 0}`);
-
-    try {
-      const msg = messages?.[0];
-
-      if (!msg) {
-        console.log("⚠️ No message object received");
-        return;
-      }
-
-      const remoteJid = msg.key?.remoteJid || "unknown";
-      const fromMe = !!msg.key?.fromMe;
-      const messageType = msg.message ? Object.keys(msg.message)[0] : "no-message";
-
-      console.log(`📩 Raw message | From: ${remoteJid} | FromMe: ${fromMe} | Type: ${messageType}`);
-
-      if (!msg.message) return;
-
-      const text = getMessageText(msg.message).trim();
-
-      console.log(`📝 Extracted text: "${text}"`);
-
-      if (!text) return;
-      if (!text.startsWith(PREFIX)) return;
-
-      const args = text.slice(PREFIX.length).trim().split(/ +/).filter(Boolean);
-      const commandName = args.shift()?.toLowerCase();
-
-      console.log(`📌 Command parsed: ${commandName}`);
-
-      if (!commandName) return;
-
-      if (!commands.has(commandName)) {
-        console.log(`❌ Unknown command: ${commandName}`);
-        await sock.sendMessage(remoteJid, {
-          text: `❌ Unknown command: *${PREFIX}${commandName}*\n\nType *${PREFIX}menu*`,
-        });
-        return;
-      }
-
-      const executeFn = commands.get(commandName);
-
-      await executeFn(sock, msg, args, {
-        BOT_NAME,
-        PREFIX,
-        OWNER_NUMBER,
-        COMMANDS_COUNT: commands.size,
-        COMMAND_NAMES: [...commands.keys()],
-      });
-
-      console.log(`✅ Executed command: ${commandName}`);
-    } catch (err) {
-      console.error("❌ Message handler error:", err);
-    }
-  });
-
   sock.ev.on("connection.update", async (update) => {
-    const { connection, lastDisconnect, qr } = update;
-
-    if (qr) console.log("🔐 Scan QR in WhatsApp Linked Devices.");
+    const { connection, lastDisconnect } = update;
 
     if (connection === "open") {
       isConnecting = false;
 
-      if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
-        reconnectTimer = null;
-      }
+      if (reconnectTimer) clearTimeout(reconnectTimer);
 
-      console.log(`✅ ${BOT_NAME} is ONLINE with ${commands.size} commands!`);
+      console.log("✅ Bot connected");
       await sendStartupMessage(sock);
     }
 
@@ -251,18 +169,51 @@ async function connect() {
       isConnecting = false;
 
       const code = lastDisconnect?.error?.output?.statusCode;
-      console.log(`❌ Connection closed. Code: ${code}`);
+      console.log("❌ Connection closed:", code);
 
-      if ([DisconnectReason.loggedOut, 401, 403, 405].includes(code)) {
-        process.exit(1);
+      if ([401, 403, 405].includes(code)) process.exit(1);
+
+      reconnectTimer = setTimeout(connect, 10000);
+    }
+  });
+
+  sock.ev.on("messages.upsert", async ({ messages }) => {
+    console.log("📥 EVENT TRIGGERED");
+
+    try {
+      const msg = messages[0];
+
+      if (!msg?.message) return;
+
+      console.log("📩 RAW MESSAGE RECEIVED");
+
+      const text = getMessageText(msg.message);
+
+      console.log("📝 TEXT:", text);
+
+      if (!text.startsWith(PREFIX)) return;
+
+      const args = text.slice(PREFIX.length).trim().split(" ");
+      const commandName = args.shift().toLowerCase();
+
+      console.log("📌 COMMAND:", commandName);
+
+      if (!commands.has(commandName)) {
+        await sock.sendMessage(msg.key.remoteJid, {
+          text: "❌ Unknown command",
+        });
+        return;
       }
 
-      if (reconnectTimer) return;
+      await commands.get(commandName)(sock, msg, args, {
+        BOT_NAME,
+        PREFIX,
+        OWNER_NUMBER,
+      });
 
-      reconnectTimer = setTimeout(() => {
-        reconnectTimer = null;
-        connect();
-      }, 10000);
+      console.log("✅ Command executed");
+    } catch (err) {
+      console.log("❌ Message error:", err.message);
     }
   });
 }
