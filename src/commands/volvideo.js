@@ -1,7 +1,16 @@
 async function execute(sock, msg, args) {
+  const level = args[0] || "2";
+
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *volvideo* command is working.\n\n⚙️ Advanced logic will be added next."
+    text:
+      "🔊 *VIDEO VOLUME*\n\n" +
+      "Volume level: " + level + "x\n\n" +
+      "Reply to a video with .volvideo 2. FFmpeg video audio-volume engine will be connected next."
   });
 }
 
-module.exports = { name: "volvideo", description: "volvideo command", execute };
+module.exports = {
+  name: "volvideo",
+  description: "Increase video volume",
+  execute
+};

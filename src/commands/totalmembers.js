@@ -1,7 +1,11 @@
-async function execute(sock, msg, args) {
-  await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *totalmembers* command is working.\n\n⚙️ Advanced logic will be added next."
-  });
+const { requireGroup } = require("../lib/groupUtils");
+
+async function execute(sock, msg) {
+  const jid = await requireGroup(sock, msg);
+  if (!jid) return;
+
+  const metadata = await sock.groupMetadata(jid);
+  await sock.sendMessage(jid, { text: "👥 Total members: " + metadata.participants.length });
 }
 
-module.exports = { name: "totalmembers", description: "totalmembers command", execute };
+module.exports = { name: "totalmembers", description: "Total group members", execute };

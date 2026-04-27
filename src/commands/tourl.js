@@ -1,7 +1,7 @@
-async function execute(sock, msg, args) {
+async function execute(sock, msg) {
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *tourl* command is working.\n\n⚙️ Advanced logic will be added next."
+    text: "🔗 Reply to media with .tourl. Upload engine will be connected next."
   });
 }
 
-module.exports = { name: "tourl", description: "tourl command", execute };
+module.exports = { name: "tourl", description: "Upload media to URL", execute };

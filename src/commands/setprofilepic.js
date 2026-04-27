@@ -1,7 +1,7 @@
-async function execute(sock, msg, args) {
+async function execute(sock, msg) {
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *setprofilepic* command is working.\n\n⚙️ Advanced logic will be added next."
+    text: "🖼️ Reply to an image with .setprofilepic. Image upload logic will be finalized after media tools."
   });
 }
 
-module.exports = { name: "setprofilepic", description: "setprofilepic command", execute };
+module.exports = { name: "setprofilepic", description: "Set profile picture", execute };

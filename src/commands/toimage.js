@@ -1,7 +1,7 @@
-async function execute(sock, msg, args) {
+async function execute(sock, msg) {
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *toimage* command is working.\n\n⚙️ Advanced logic will be added next."
+    text: "🖼️ Reply to sticker with .toimage. Conversion engine will be connected next."
   });
 }
 
-module.exports = { name: "toimage", description: "toimage command", execute };
+module.exports = { name: "toimage", description: "Convert sticker to image", execute };

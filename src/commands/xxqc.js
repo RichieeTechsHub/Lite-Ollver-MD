@@ -1,7 +1,11 @@
-async function execute(sock, msg, args) {
+async function execute(sock, msg) {
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *xxqc* command is working.\n\n⚙️ Advanced logic will be added next."
+    text: "⚡ *XXQC Mode*\n\nCommand active. Reaction engine will be upgraded later."
   });
 }
 
-module.exports = { name: "xxqc", description: "xxqc command", execute };
+module.exports = {
+  name: "xxqc",
+  description: "Fun reaction",
+  execute
+};

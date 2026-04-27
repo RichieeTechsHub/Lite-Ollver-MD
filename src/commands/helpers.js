@@ -1,7 +1,15 @@
-async function execute(sock, msg, args) {
+async function execute(sock, msg, args, ctx) {
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *helpers* command is working.\n\n⚙️ Advanced logic will be added next."
+    text:
+      "🆘 *SUPPORT HELPERS*\n\n" +
+      "👑 Owner: wa.me/" + (ctx.OWNER_NUMBER || "254740479599") + "\n" +
+      "📌 Use .feedback your message to report issues.\n" +
+      "🤖 Bot: " + (ctx.BOT_NAME || "Lite-Ollver-MD")
   });
 }
 
-module.exports = { name: "helpers", description: "helpers command", execute };
+module.exports = {
+  name: "helpers",
+  description: "Show support helpers",
+  execute
+};

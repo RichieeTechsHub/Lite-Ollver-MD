@@ -1,7 +1,7 @@
-async function execute(sock, msg, args) {
+async function execute(sock, msg) {
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *eplstandings* command is working.\n\n⚙️ Advanced logic will be added next."
+    text: "🏆 *EPL STANDINGS*\n\n✅ Command active. Standings API will be connected next."
   });
 }
 
-module.exports = { name: "eplstandings", description: "eplstandings command", execute };
+module.exports = { name: "eplstandings", description: "EPL standings", execute };

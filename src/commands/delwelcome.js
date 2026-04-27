@@ -1,7 +1,17 @@
-async function execute(sock, msg, args) {
+const { readSettings, writeSettings } = require("../lib/botSettings");
+
+async function execute(sock, msg) {
+  const settings = await readSettings();
+  delete settings["delwelcome"];
+  await writeSettings(settings);
+
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *delwelcome* command is working.\n\n⚙️ Advanced logic will be added next."
+    text: "✅ *delwelcome* cleared."
   });
 }
 
-module.exports = { name: "delwelcome", description: "delwelcome command", execute };
+module.exports = {
+  name: "delwelcome",
+  description: "delwelcome clear command",
+  execute
+};

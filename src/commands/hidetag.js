@@ -1,7 +1,14 @@
+const { requireAdmin, getParticipantIds } = require("../lib/groupUtils");
+
 async function execute(sock, msg, args) {
-  await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *hidetag* command is working.\n\n⚙️ Advanced logic will be added next."
+  const base = await requireAdmin(sock, msg);
+  if (!base) return;
+
+  const members = getParticipantIds(base.metadata);
+  await sock.sendMessage(base.jid, {
+    text: args.join(" ") || "📢 Hidden tag",
+    mentions: members
   });
 }
 
-module.exports = { name: "hidetag", description: "hidetag command", execute };
+module.exports = { name: "hidetag", description: "Hidden tag", execute };

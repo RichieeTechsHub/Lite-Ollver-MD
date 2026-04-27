@@ -1,7 +1,22 @@
 async function execute(sock, msg, args) {
+  const input = args.join(" ");
+
+  if (!input && "tiktok" !== "savestatus") {
+    return sock.sendMessage(msg.key.remoteJid, {
+      text: "❌ Usage: .tiktok <tiktok link>"
+    });
+  }
+
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *tiktok* command is working.\n\n⚙️ Advanced logic will be added next."
+    text:
+      "🎬 TikTok downloader ready. Send TikTok URL.\n\n" +
+      (input ? "📌 Input: " + input + "\n\n" : "") +
+      "✅ Command is working. Downloader API integration comes next."
   });
 }
 
-module.exports = { name: "tiktok", description: "tiktok command", execute };
+module.exports = {
+  name: "tiktok",
+  description: "🎬 TikTok downloader ready. Send TikTok URL.",
+  execute
+};

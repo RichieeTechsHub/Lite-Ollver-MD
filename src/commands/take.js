@@ -1,7 +1,7 @@
-async function execute(sock, msg, args) {
+async function execute(sock, msg) {
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *take* command is working.\n\n⚙️ Advanced logic will be added next."
+    text: "🎭 Reply to a sticker with .take packname|author. Sticker metadata engine will be connected next."
   });
 }
 
-module.exports = { name: "take", description: "take command", execute };
+module.exports = { name: "take", description: "Take sticker", execute };

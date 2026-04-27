@@ -1,7 +1,10 @@
 async function execute(sock, msg, args) {
+  const phone = args.join(" ");
+  if (!phone) return sock.sendMessage(msg.key.remoteJid, { text: "❌ Usage: .gsmarena Samsung A13" });
+
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *gsmarena* command is working.\n\n⚙️ Advanced logic will be added next."
+    text: "📱 *GSMARENA SEARCH*\n\nPhone: " + phone + "\n\nGSMArena API will be connected next."
   });
 }
 
-module.exports = { name: "gsmarena", description: "gsmarena command", execute };
+module.exports = { name: "gsmarena", description: "Phone specs search", execute };

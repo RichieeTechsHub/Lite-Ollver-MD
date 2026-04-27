@@ -1,7 +1,17 @@
-async function execute(sock, msg, args) {
+const { readSettings, writeSettings } = require("../lib/botSettings");
+
+async function execute(sock, msg) {
+  const settings = await readSettings();
+  delete settings["delignorelist"];
+  await writeSettings(settings);
+
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *delignorelist* command is working.\n\n⚙️ Advanced logic will be added next."
+    text: "✅ *delignorelist* cleared."
   });
 }
 
-module.exports = { name: "delignorelist", description: "delignorelist command", execute };
+module.exports = {
+  name: "delignorelist",
+  description: "delignorelist clear command",
+  execute
+};

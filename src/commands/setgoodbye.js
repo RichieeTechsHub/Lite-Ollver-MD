@@ -1,7 +1,23 @@
+const { setSetting } = require("../lib/botSettings");
+
 async function execute(sock, msg, args) {
+  const value = args.join(" ");
+
+  if (!value) {
+    return sock.sendMessage(msg.key.remoteJid, {
+      text: "❌ Usage: .setgoodbye value"
+    });
+  }
+
+  await setSetting("setgoodbye", value);
+
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *setgoodbye* command is working.\n\n⚙️ Advanced logic will be added next."
+    text: "✅ *setgoodbye* updated to:\n" + value
   });
 }
 
-module.exports = { name: "setgoodbye", description: "setgoodbye command", execute };
+module.exports = {
+  name: "setgoodbye",
+  description: "setgoodbye setting",
+  execute
+};

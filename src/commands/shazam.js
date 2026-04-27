@@ -1,7 +1,7 @@
-async function execute(sock, msg, args) {
+async function execute(sock, msg) {
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *shazam* command is working.\n\n⚙️ Advanced logic will be added next."
+    text: "🎧 *SHAZAM*\n\nReply to an audio with .shazam\n\n✅ Audio recognition API will be connected next."
   });
 }
 
-module.exports = { name: "shazam", description: "shazam command", execute };
+module.exports = { name: "shazam", description: "Recognize song from audio", execute };

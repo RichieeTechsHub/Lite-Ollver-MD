@@ -1,7 +1,9 @@
 async function execute(sock, msg, args) {
-  await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *setbio* command is working.\n\n⚙️ Advanced logic will be added next."
-  });
+  const bio = args.join(" ");
+  if (!bio) return sock.sendMessage(msg.key.remoteJid, { text: "❌ Usage: .setbio new bio" });
+
+  await sock.updateProfileStatus(bio);
+  await sock.sendMessage(msg.key.remoteJid, { text: "✅ Bio updated." });
 }
 
-module.exports = { name: "setbio", description: "setbio command", execute };
+module.exports = { name: "setbio", description: "Set bot bio", execute };

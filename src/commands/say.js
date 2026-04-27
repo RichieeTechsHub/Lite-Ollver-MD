@@ -1,7 +1,8 @@
 async function execute(sock, msg, args) {
-  await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *say* command is working.\n\n⚙️ Advanced logic will be added next."
-  });
+  const text = args.join(" ");
+  if (!text) return sock.sendMessage(msg.key.remoteJid, { text: "❌ Usage: .say hello" });
+
+  await sock.sendMessage(msg.key.remoteJid, { text });
 }
 
-module.exports = { name: "say", description: "say command", execute };
+module.exports = { name: "say", description: "Repeat text", execute };

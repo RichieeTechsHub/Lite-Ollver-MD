@@ -1,7 +1,16 @@
-async function execute(sock, msg, args) {
+const { readSettings } = require("../lib/botSettings");
+
+async function execute(sock, msg) {
+  const settings = await readSettings();
+  const value = settings["setcountrycode"] || "Not set";
+
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *listcountrycode* command is working.\n\n⚙️ Advanced logic will be added next."
+    text: "⚙️ *listcountrycode*\n\n" + value
   });
 }
 
-module.exports = { name: "listcountrycode", description: "listcountrycode command", execute };
+module.exports = {
+  name: "listcountrycode",
+  description: "listcountrycode command",
+  execute
+};

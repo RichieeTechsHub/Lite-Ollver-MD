@@ -1,7 +1,7 @@
-async function execute(sock, msg, args) {
+async function execute(sock, msg) {
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *getabout* command is working.\n\n⚙️ Advanced logic will be added next."
+    text: "ℹ️ *GET ABOUT*\n\nWhatsApp about/status fetch will be connected next."
   });
 }
 
-module.exports = { name: "getabout", description: "getabout command", execute };
+module.exports = { name: "getabout", description: "Get user about", execute };

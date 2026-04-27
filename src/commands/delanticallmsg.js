@@ -1,7 +1,17 @@
-async function execute(sock, msg, args) {
+const { readSettings, writeSettings } = require("../lib/botSettings");
+
+async function execute(sock, msg) {
+  const settings = await readSettings();
+  delete settings["delanticallmsg"];
+  await writeSettings(settings);
+
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *delanticallmsg* command is working.\n\n⚙️ Advanced logic will be added next."
+    text: "✅ *delanticallmsg* cleared."
   });
 }
 
-module.exports = { name: "delanticallmsg", description: "delanticallmsg command", execute };
+module.exports = {
+  name: "delanticallmsg",
+  description: "delanticallmsg clear command",
+  execute
+};

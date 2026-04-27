@@ -1,21 +1,22 @@
-<<<<<<< HEAD
 async function execute(sock, msg, args) {
+  const input = args.join(" ");
+
+  if (!input && "image" !== "savestatus") {
+    return sock.sendMessage(msg.key.remoteJid, {
+      text: "❌ Usage: .image lion wallpaper"
+    });
+  }
+
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *image* command is working.\n\n⚙️ Advanced logic will be added next."
+    text:
+      "🖼️ Image search command ready. Send search term.\n\n" +
+      (input ? "📌 Input: " + input + "\n\n" : "") +
+      "✅ Command is working. Downloader API integration comes next."
   });
 }
 
-module.exports = { name: "image", description: "image command", execute };
-=======
-async function execute(command, { args, fullArgs }) {
-  
-  const responses = {
-    remini: "✨ *Remini HD*\n\nEnhancing image quality...\n\n✅ Image enhanced successfully!",
-    wallpaper: `🖼️ *Wallpaper*\n\nSearching for: ${fullArgs || 'random'}\n\n✅ Found HD wallpaper!`
-  };
-  
-  return responses[command] || `🖼️ Image command: ${command}`;
-}
-
-module.exports = { execute };
->>>>>>> 947c453f6ed8e135658b8662b1f2e94d9a4a09d3
+module.exports = {
+  name: "image",
+  description: "🖼️ Image search command ready. Send search term.",
+  execute
+};

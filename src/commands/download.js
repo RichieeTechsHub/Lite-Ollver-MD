@@ -1,32 +1,22 @@
-<<<<<<< HEAD
 async function execute(sock, msg, args) {
+  const input = args.join(" ");
+
+  if (!input && "download" !== "savestatus") {
+    return sock.sendMessage(msg.key.remoteJid, {
+      text: "❌ Usage: .download https://example.com/file.zip"
+    });
+  }
+
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *download* command is working.\n\n⚙️ Advanced logic will be added next."
+    text:
+      "⬇️ Download command active. Send a direct URL after .download\n\n" +
+      (input ? "📌 Input: " + input + "\n\n" : "") +
+      "✅ Command is working. Downloader API integration comes next."
   });
 }
 
-module.exports = { name: "download", description: "download command", execute };
-=======
-async function execute(command, { args, fullArgs }) {
-  
-  if (!fullArgs) {
-    return `❌ Please provide a URL.\nExample: .${command} https://example.com/video`;
-  }
-  
-  const responses = {
-    tiktok: `📱 *TIKTOK DOWNLOADER*\n\nURL: ${fullArgs}\n✅ Video found!\n⬇️ Download: tiktok.com/download`,
-    instagram: `📷 *INSTAGRAM DOWNLOADER*\n\nURL: ${fullArgs}\n✅ Post found!\n⬇️ Download: instagram.com/download`,
-    facebook: `📘 *FACEBOOK DOWNLOADER*\n\nURL: ${fullArgs}\n✅ Video found!\n⬇️ Download: facebook.com/download`,
-    youtube: `🎬 *YOUTUBE DOWNLOADER*\n\nURL: ${fullArgs}\n✅ Video found!\n⬇️ Download: youtube.com/download`,
-    twitter: `🐦 *TWITTER DOWNLOADER*\n\nURL: ${fullArgs}\n✅ Media found!\n⬇️ Download: twitter.com/download`,
-    song: `🎵 *SONG DOWNLOADER*\n\nSearching: ${fullArgs}\n✅ Song found!\n⬇️ Download: music.com/download`,
-    video: `🎬 *VIDEO DOWNLOADER*\n\nURL: ${fullArgs}\n✅ Video found!\n⬇️ Download: video.com/download`,
-    apk: `📱 *APK DOWNLOADER*\n\nSearching: ${fullArgs}\n✅ APK found!\n⬇️ Download: apkpure.com/download`,
-    gdrive: `📁 *GOOGLE DRIVE DOWNLOADER*\n\nURL: ${fullArgs}\n✅ File found!\n⬇️ Download: drive.google.com/direct`
-  };
-  
-  return responses[command] || `✅ Download started for: ${fullArgs}`;
-}
-
-module.exports = { execute };
->>>>>>> 947c453f6ed8e135658b8662b1f2e94d9a4a09d3
+module.exports = {
+  name: "download",
+  description: "⬇️ Download command active. Send a direct URL after .download",
+  execute
+};

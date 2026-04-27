@@ -1,7 +1,11 @@
-async function execute(sock, msg, args) {
+async function execute(sock, msg) {
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *quotes* command is working.\n\n⚙️ Advanced logic will be added next."
+    text: "💬 *Quote*\n\nSuccess is not final, failure is not fatal: it is the courage to continue that counts."
   });
 }
 
-module.exports = { name: "quotes", description: "quotes command", execute };
+module.exports = {
+  name: "quotes",
+  description: "Motivational quote",
+  execute
+};

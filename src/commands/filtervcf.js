@@ -1,7 +1,7 @@
-async function execute(sock, msg, args) {
+async function execute(sock, msg) {
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *filtervcf* command is working.\n\n⚙️ Advanced logic will be added next."
+    text: "📇 *FILTER VCF*\n\nReply to a .vcf document. VCF filtering engine will be connected next."
   });
 }
 
-module.exports = { name: "filtervcf", description: "filtervcf command", execute };
+module.exports = { name: "filtervcf", description: "Filter VCF contacts", execute };

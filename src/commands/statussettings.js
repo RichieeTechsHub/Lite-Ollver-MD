@@ -1,7 +1,15 @@
-async function execute(sock, msg, args) {
+const { readSettings } = require("../lib/botSettings");
+
+async function execute(sock, msg) {
+  const settings = await readSettings();
+
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *statussettings* command is working.\n\n⚙️ Advanced logic will be added next."
+    text: "⚙️ *BOT SETTINGS*\n\n" + JSON.stringify(settings, null, 2)
   });
 }
 
-module.exports = { name: "statussettings", description: "statussettings command", execute };
+module.exports = {
+  name: "statussettings",
+  description: "Show bot settings",
+  execute
+};

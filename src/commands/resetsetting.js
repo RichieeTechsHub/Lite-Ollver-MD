@@ -1,7 +1,15 @@
-async function execute(sock, msg, args) {
+const { writeSettings } = require("../lib/botSettings");
+
+async function execute(sock, msg) {
+  await writeSettings({});
+
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *resetsetting* command is working.\n\n⚙️ Advanced logic will be added next."
+    text: "✅ All bot settings reset."
   });
 }
 
-module.exports = { name: "resetsetting", description: "resetsetting command", execute };
+module.exports = {
+  name: "resetsetting",
+  description: "Reset settings",
+  execute
+};

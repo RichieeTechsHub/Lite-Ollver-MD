@@ -1,7 +1,11 @@
-async function execute(sock, msg, args) {
+async function execute(sock, msg) {
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *truthdetector* command is working.\n\n⚙️ Advanced logic will be added next."
+    text: "🕵️ *Truth Detector*\n\nAnalyzing... 73% truth detected 😂"
   });
 }
 
-module.exports = { name: "truthdetector", description: "truthdetector command", execute };
+module.exports = {
+  name: "truthdetector",
+  description: "Truth detector",
+  execute
+};

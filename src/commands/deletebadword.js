@@ -1,7 +1,17 @@
-async function execute(sock, msg, args) {
+const { readSettings, writeSettings } = require("../lib/botSettings");
+
+async function execute(sock, msg) {
+  const settings = await readSettings();
+  delete settings["deletebadword"];
+  await writeSettings(settings);
+
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *deletebadword* command is working.\n\n⚙️ Advanced logic will be added next."
+    text: "✅ *deletebadword* cleared."
   });
 }
 
-module.exports = { name: "deletebadword", description: "deletebadword command", execute };
+module.exports = {
+  name: "deletebadword",
+  description: "deletebadword clear command",
+  execute
+};

@@ -1,7 +1,22 @@
 async function execute(sock, msg, args) {
+  const input = args.join(" ");
+
+  if (!input && "twitter" !== "savestatus") {
+    return sock.sendMessage(msg.key.remoteJid, {
+      text: "❌ Usage: .twitter <x/twitter link>"
+    });
+  }
+
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *twitter* command is working.\n\n⚙️ Advanced logic will be added next."
+    text:
+      "𝕏 Twitter/X downloader ready. Send tweet/video URL.\n\n" +
+      (input ? "📌 Input: " + input + "\n\n" : "") +
+      "✅ Command is working. Downloader API integration comes next."
   });
 }
 
-module.exports = { name: "twitter", description: "twitter command", execute };
+module.exports = {
+  name: "twitter",
+  description: "𝕏 Twitter/X downloader ready. Send tweet/video URL.",
+  execute
+};

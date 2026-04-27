@@ -1,7 +1,24 @@
+const { setSetting, readSettings } = require("../lib/botSettings");
+
 async function execute(sock, msg, args) {
+  const option = (args[0] || "").toLowerCase();
+
+  if (!["on", "off"].includes(option)) {
+    const settings = await readSettings();
+    return sock.sendMessage(msg.key.remoteJid, {
+      text: "⚙️ *antiedit*\n\nUsage: .antiedit on/off\nCurrent: " + (settings["antiedit"] ? "ON" : "OFF")
+    });
+  }
+
+  await setSetting("antiedit", option === "on");
+
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *antiedit* command is working.\n\n⚙️ Advanced logic will be added next."
+    text: "✅ *antiedit* turned " + option.toUpperCase()
   });
 }
 
-module.exports = { name: "antiedit", description: "antiedit command", execute };
+module.exports = {
+  name: "antiedit",
+  description: "antiedit toggle command",
+  execute
+};

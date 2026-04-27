@@ -1,7 +1,7 @@
-async function execute(sock, msg, args) {
+async function execute(sock, msg) {
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *vcc* command is working.\n\n⚙️ Advanced logic will be added next."
+    text: "📇 VCC command active. Contact conversion engine will be connected next."
   });
 }
 
-module.exports = { name: "vcc", description: "vcc command", execute };
+module.exports = { name: "vcc", description: "VCC contact tool", execute };

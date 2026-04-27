@@ -1,7 +1,13 @@
-async function execute(sock, msg, args) {
+async function execute(sock, msg) {
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *repo* command is working.\n\n⚙️ Advanced logic will be added next."
+    text:
+      "📦 *LITE-OLLVER-MD REPO*\n\n" +
+      "GitHub: https://github.com/RichieeTechsHub/Lite-Ollver-MD"
   });
 }
 
-module.exports = { name: "repo", description: "repo command", execute };
+module.exports = {
+  name: "repo",
+  description: "Show bot repo",
+  execute
+};

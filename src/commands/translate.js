@@ -1,20 +1,22 @@
-<<<<<<< HEAD
 async function execute(sock, msg, args) {
+  const text = args.join(" ");
+
+  if (!text) {
+    return sock.sendMessage(msg.key.remoteJid, {
+      text: "❌ Usage: .translate hello to swahili"
+    });
+  }
+
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *translate* command is working.\n\n⚙️ Advanced logic will be added next."
+    text:
+      "🌍 *TRANSLATE*\n\n" +
+      "Input: " + text + "\n\n" +
+      "✅ Translate command active. Translation API will be connected next."
   });
 }
 
-module.exports = { name: "translate", description: "translate command", execute };
-=======
-async function execute(command, { args, fullArgs }) {
-  
-  if (!fullArgs) {
-    return "❌ Usage: .translate Hello (to English)\nOr .translate es Hello (Spanish to English)";
-  }
-  
-  return `🌐 *TRANSLATION*\n\nOriginal: ${fullArgs}\nTranslated: [${fullArgs} in English]\n\n_Translation service simulated_`;
-}
-
-module.exports = { execute };
->>>>>>> 947c453f6ed8e135658b8662b1f2e94d9a4a09d3
+module.exports = {
+  name: "translate",
+  description: "Translate text",
+  execute
+};

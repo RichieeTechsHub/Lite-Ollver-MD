@@ -1,7 +1,7 @@
-async function execute(sock, msg, args) {
+async function execute(sock, msg) {
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *sticker* command is working.\n\n⚙️ Advanced logic will be added next."
+    text: "🎭 Reply to an image/video with .sticker. Sticker engine will be connected next."
   });
 }
 
-module.exports = { name: "sticker", description: "sticker command", execute };
+module.exports = { name: "sticker", description: "Create sticker", execute };

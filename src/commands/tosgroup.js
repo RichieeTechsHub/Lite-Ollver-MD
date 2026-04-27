@@ -1,7 +1,27 @@
 async function execute(sock, msg, args) {
-  await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *tosgroup* command is working.\n\n⚙️ Advanced logic will be added next."
+  const jid = msg.key.remoteJid;
+
+  if (!jid.endsWith("@g.us")) {
+    return sock.sendMessage(jid, {
+      text: "❌ This command only works inside a group."
+    });
+  }
+
+  const text = args.join(" ");
+
+  if (!text) {
+    return sock.sendMessage(jid, {
+      text: "❌ Usage: .tosgroup your message here"
+    });
+  }
+
+  await sock.sendMessage(jid, {
+    text: "📢 *GROUP STATUS MESSAGE*\n\n" + text
   });
 }
 
-module.exports = { name: "tosgroup", description: "tosgroup command", execute };
+module.exports = {
+  name: "tosgroup",
+  description: "Send text as group status-style message",
+  execute
+};

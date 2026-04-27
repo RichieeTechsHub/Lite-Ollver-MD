@@ -1,7 +1,11 @@
-async function execute(sock, msg, args) {
+async function execute(sock, msg) {
   await sock.sendMessage(msg.key.remoteJid, {
-    text: "✅ *jokes* command is working.\n\n⚙️ Advanced logic will be added next."
+    text: "😂 *Joke*\n\nWhy did the developer go broke? Because he used up all his cache."
   });
 }
 
-module.exports = { name: "jokes", description: "jokes command", execute };
+module.exports = {
+  name: "jokes",
+  description: "Random joke",
+  execute
+};
