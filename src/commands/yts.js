@@ -1,24 +1,40 @@
 ﻿const yts = require("yt-search");
 
 async function execute(sock, msg, args) {
-  const query = args.join(" ");
+  const query = args.join(" ").trim();
 
   if (!query) {
     return sock.sendMessage(msg.key.remoteJid, {
-      text: "❌ Usage: .yts search"
+      text: "❌ Usage: .yts search text",
     });
   }
 
-  const res = await yts(query);
-  const vids = res.videos.slice(0, 5);
+  try {
+    const search = await yts(query);
+    const videos = search.videos?.slice(0, 10) || [];
 
-  let text = "🎥 *YouTube Results*\n\n";
+    if (!videos.length) {
+      return sock.sendMessage(msg.key.remoteJid, { text: "❌ No results found." });
+    }
 
-  vids.forEach(v => {
-    text += `📌 ${v.title}\n🔗 ${v.url}\n\n`;
-  });
+    const text = videos
+      .map((v, i) =>
+        `${i + 1}. *${v.title}*\n⏱ ${v.timestamp}\n🔗 ${v.url}`
+      )
+      .join("\n\n");
 
-  await sock.sendMessage(msg.key.remoteJid, { text });
+    await sock.sendMessage(msg.key.remoteJid, {
+      text: "🔎 *YouTube Search Results*\n\n" + text,
+    });
+  } catch (err) {
+    await sock.sendMessage(msg.key.remoteJid, {
+      text: "❌ YouTube search failed.",
+    });
+  }
 }
 
-module.exports = { name: "yts", execute };
+module.exports = {
+  name: "yts",
+  description: "Search YouTube",
+  execute,
+};

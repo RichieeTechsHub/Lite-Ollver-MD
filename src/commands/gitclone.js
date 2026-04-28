@@ -1,35 +1,37 @@
 ﻿async function execute(sock, msg, args) {
-  const repo = args[0];
+  const url = args[0];
 
-  if (!repo || !repo.includes("github.com")) {
+  if (!url || !url.includes("github.com")) {
     return sock.sendMessage(msg.key.remoteJid, {
-      text: "❌ Usage: .gitclone https://github.com/user/repo"
+      text: "❌ Usage: .gitclone GitHub-repo-link",
     });
   }
 
   try {
-    const clean = repo.replace(/\/$/, "").replace(".git", "");
-    const parts = clean.split("github.com/")[1].split("/");
+    const clean = url.replace(/\/$/, "");
+    const parts = clean.split("github.com/")[1]?.split("/");
+
+    if (!parts || parts.length < 2) throw new Error("Invalid GitHub URL");
+
     const owner = parts[0];
-    const name = parts[1];
-
-    const zip = `https://codeload.github.com/${owner}/${name}/zip/refs/heads/main`;
+    const repo = parts[1].replace(".git", "");
+    const zipUrl = `https://github.com/${owner}/${repo}/archive/refs/heads/main.zip`;
 
     await sock.sendMessage(msg.key.remoteJid, {
-      document: { url: zip },
-      fileName: `${name}.zip`,
+      document: { url: zipUrl },
+      fileName: `${repo}.zip`,
       mimetype: "application/zip",
-      caption: "✅ GitHub repo cloned as ZIP."
+      caption: `✅ GitHub repo cloned\n${owner}/${repo}`,
     });
-  } catch {
+  } catch (err) {
     await sock.sendMessage(msg.key.remoteJid, {
-      text: "❌ Git clone failed."
+      text: "❌ Git clone failed. Make sure the repo is public and has main branch.",
     });
   }
 }
 
 module.exports = {
   name: "gitclone",
-  description: "Clone GitHub repo as zip",
-  execute
+  description: "Download GitHub repo zip",
+  execute,
 };

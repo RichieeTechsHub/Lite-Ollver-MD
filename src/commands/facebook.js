@@ -1,22 +1,7 @@
-async function execute(sock, msg, args) {
-  const input = args.join(" ");
-
-  if (!input && "facebook" !== "savestatus") {
-    return sock.sendMessage(msg.key.remoteJid, {
-      text: "❌ Usage: .facebook <facebook video link>"
-    });
-  }
-
-  await sock.sendMessage(msg.key.remoteJid, {
-    text:
-      "📘 Facebook downloader ready. Send Facebook video URL.\n\n" +
-      (input ? "📌 Input: " + input + "\n\n" : "") +
-      "✅ Command is working. Downloader API integration comes next."
-  });
-}
+﻿const instagram = require("./instagram");
 
 module.exports = {
   name: "facebook",
-  description: "📘 Facebook downloader ready. Send Facebook video URL.",
-  execute
+  description: "Facebook downloader fallback",
+  execute: instagram.execute,
 };

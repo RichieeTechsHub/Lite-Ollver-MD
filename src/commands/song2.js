@@ -2,6 +2,6 @@
 
 module.exports = {
   name: "song2",
-  description: "Search song alternative",
+  description: "Alternative song audio downloader",
   execute: song.execute,
 };
