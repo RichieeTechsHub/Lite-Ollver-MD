@@ -1,4 +1,4 @@
-﻿const yts = require("yt-search");
+const yts = require("yt-search");
 
 async function execute(sock, msg, args) {
   const query = args.join(" ").trim();
@@ -11,20 +11,20 @@ async function execute(sock, msg, args) {
 
   try {
     const search = await yts(query);
-    const videos = search.videos?.slice(0, 10) || [];
+    const videos = (search.videos || []).slice(0, 10);
 
     if (!videos.length) {
-      return sock.sendMessage(msg.key.remoteJid, { text: "❌ No results found." });
+      return sock.sendMessage(msg.key.remoteJid, {
+        text: "❌ No results found.",
+      });
     }
 
-    const text = videos
-      .map((v, i) =>
-        `${i + 1}. *${v.title}*\n⏱ ${v.timestamp}\n🔗 ${v.url}`
-      )
+    const result = videos
+      .map((v, i) => `${i + 1}. *${v.title}*\n⏱ ${v.timestamp}\n🔗 ${v.url}`)
       .join("\n\n");
 
     await sock.sendMessage(msg.key.remoteJid, {
-      text: "🔎 *YouTube Search Results*\n\n" + text,
+      text: "🔎 *YouTube Results*\n\n" + result,
     });
   } catch (err) {
     await sock.sendMessage(msg.key.remoteJid, {
