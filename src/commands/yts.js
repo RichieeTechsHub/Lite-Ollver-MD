@@ -10,23 +10,24 @@ async function execute(sock, msg, args) {
   }
 
   try {
-    const search = await yts(query);
-    const videos = (search.videos || []).slice(0, 10);
+    const result = await yts(query);
+    const videos = result.videos.slice(0, 10);
 
     if (!videos.length) {
       return sock.sendMessage(msg.key.remoteJid, {
-        text: "❌ No results found.",
+        text: "❌ No YouTube results found.",
       });
     }
 
-    const result = videos
+    const text = videos
       .map((v, i) => `${i + 1}. *${v.title}*\n⏱ ${v.timestamp}\n🔗 ${v.url}`)
       .join("\n\n");
 
     await sock.sendMessage(msg.key.remoteJid, {
-      text: "🔎 *YouTube Results*\n\n" + result,
+      text: "🔎 *YouTube Search Results*\n\n" + text,
     });
   } catch (err) {
+    console.log("YTS error:", err.message);
     await sock.sendMessage(msg.key.remoteJid, {
       text: "❌ YouTube search failed.",
     });
