@@ -23,20 +23,21 @@ const FALLBACK_LOGO =
 const MENU_CATEGORIES = {
   "AI MENU": ["analyze","blackbox","code","dalle","deepseek","doppleai","gemini","generate","gpt","programming","recipe","story","summarize","teach","translate2"],
   "AUDIO MENU": ["bass","blown","deep","earrape","reverse","robot","tomp3","toptt","volaudio"],
-  "DOWNLOAD MENU": ["apk","download","facebook","gdrive","gitclone","image","instagram","itunes","mediafire","pin","savestatus","song","song2","telesticker","tiktok","tiktokaudio","twitter","video","videodoc","xvideo"],
+  "DOWNLOAD MENU": ["song","song2","video","yts","tiktok","tiktokaudio","instagram","facebook","twitter","mediafire","gitclone","gdrive","savestatus"],
   "FUN MENU": ["fact","jokes","memes","quotes","trivia","truthdetector","xxqc"],
   "GAMES MENU": ["dare","truth","truthordare"],
   "GROUP MENU": ["add","addcode","allow","announcements","antibadword","antibot","antidemote","antiforeign","antigroupmention","antilink","antilinkgc","antisticker","antitag","antitagadmin","approve","approveall","cancelkick","close","closetime","delallowed","delcode","delppgroup","demote","disapproveall","editsettings","getgrouppp","hidetag","invite","kick","kickall","kickinactive","link","listactive","listallowed","listcode","listinactive","listrequests","mediatag","open","opentime","poll","promote","reject","resetlink","setdesc","setgroupname","setppgroup","tag","tagadmin","tagall","totalmembers","userid","vcf","welcome"],
   "GROUPSTATUS MENU": ["fetchgroups","tosgroup"],
   "IMAGE MENU": ["remini","wallpaper"],
   "OTHER MENU": ["botstatus","pair","ping","ping2","repo","runtime","time"],
-  "OWNER MENU": ["owner","addowner","block","unblock","join","leave","restart","update","setbio","setprofilepic","react","vv"],
+  "OWNER MENU": ["owner","addowner","block","unblock","join","leave","restart","update","setbio","setprofilepic","react"],
   "RELIGION MENU": ["bible","quran"],
-  "SEARCH MENU": ["define","define2","imdb","lyrics","shazam","weather","yts"],
-  "SETTINGS MENU": ["addbadword","addcountrycode","addignorelist","addsudo","alwaysonline","antibug","anticall","antidelete","antideletestatus","antiedit","antiviewonce","autobio","autoblock","autoreact","autoreactstatus","autoread","autorecord","autorecordtyping","autotype","autoviewstatus","chatbot","delanticallmsg","delcountrycode","deletebadword","delgoodbye","delignorelist","delsudo","delwelcome","getsettings","listcountrycode","listwarn","mode","resetsetting","resetwarn","setanticallmsg","setbotname","setcontextlink","setfont","setgoodbye","setmenu","setmenuimage","setownername","setownernumber","setprefix","setstatusemoji","setstickerauthor","setstickerpackname","settimezone","setwarn","setwatermark","setwelcome","showanticallmsg","showgoodbye","showwelcome","statusdelay","statussettings","testanticallmsg","testgoodbye","testwelcome"],
+  "SEARCH MENU": ["define","define2","imdb","lyrics","shazam","weather"],
+  "SETTINGS MENU": ["addbadword","addcountrycode","addignorelist","addsudo","antibug","anticall","antideletestatus","antiedit","antiviewonce","autobio","autoblock","autoreact","autoreactstatus","autoread","autorecord","autorecordtyping","autotype","chatbot","delanticallmsg","delcountrycode","deletebadword","delgoodbye","delignorelist","delsudo","delwelcome","getsettings","listcountrycode","listwarn","mode","resetsetting","resetwarn","setanticallmsg","setbotname","setcontextlink","setfont","setgoodbye","setmenu","setmenuimage","setownername","setownernumber","setprefix","setstatusemoji","setstickerauthor","setstickerpackname","settimezone","setwarn","setwatermark","setwelcome","showanticallmsg","showgoodbye","showwelcome","statusdelay","statussettings","testanticallmsg","testgoodbye","testwelcome"],
   "SPORTS MENU": ["eplmatches","eplstandings","clmatches","wwenews"],
   "SUPPORT MENU": ["feedback","helpers"],
-  "TOOLS MENU": ["browse","calculate","device","emojimix","fancy","filtervcf","fliptext","genpass","getabout","getpp","gsmarena","obfuscate","qrcode","runeval","say","ssweb","sswebpc","sswebtab","sticker","take","mystickers","sendsticker","delsticker","texttopdf","tinyurl","toimage","tourl","vcc"],
+  "TOOLS MENU": ["browse","calculate","device","emojimix","fancy","filtervcf","fliptext","genpass","getabout","getpp","gsmarena","obfuscate","qrcode","runeval","say","ssweb","sswebpc","sswebtab","sticker","take","texttopdf","tinyurl","toimage","tourl","vcc"],
+  "EXTRAS MENU": ["vv","antidelete","autoviewstatus","autoreactstatus","alwaysonline","stickers","mystickers","sendsticker","delsticker"],
   "TRANSLATE MENU": ["translate"],
   "VIDEO MENU": ["toaudio","tovideo","volvideo"],
 };
@@ -112,17 +113,37 @@ function getMenuImage() {
   return { url: FALLBACK_LOGO };
 }
 
+function splitText(text, max = 3200) {
+  const chunks = [];
+  let current = "";
+
+  for (const line of text.split("\n")) {
+    if ((current + "\n" + line).length > max) {
+      if (current) chunks.push(current);
+      current = line;
+    } else {
+      current += (current ? "\n" : "") + line;
+    }
+  }
+
+  if (current) chunks.push(current);
+  return chunks;
+}
+
 async function execute(sock, msg, args, ctx) {
   const menuText = buildMenu(ctx);
+  const chunks = splitText(menuText);
 
   try {
     await sock.sendMessage(msg.key.remoteJid, {
       image: getMenuImage(),
-      caption: menuText,
+      caption: `🤖 *${ctx.BOT_NAME || "Lite-Ollver-MD"} MENU*`,
     });
-  } catch {
+  } catch {}
+
+  for (const chunk of chunks) {
     await sock.sendMessage(msg.key.remoteJid, {
-      text: menuText,
+      text: chunk,
     });
   }
 }
